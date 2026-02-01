@@ -1,9 +1,10 @@
 "use client";
 
 import React from 'react';
-import { EigenIntroContent, SpectralTheoremContent } from '@/components/content/EigenvaluesEigenvectors';
+import { EigenIntroContent, SpectralTheoremContent, DiagonalizationContent } from '@/components/content/EigenvaluesEigenvectors';
 import EigenvalueLab from '@/components/math-viz/EigenvalueLab';
 import SpectralTheoremLab from '@/components/math-viz/SpectralTheoremLab';
+import DiagonalizationLab from '@/components/math-viz/DiagonalizationLab';
 import { ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 
@@ -45,6 +46,20 @@ export default function EigenvaluesEigenvectorsPage() {
                         <div className="flex flex-col gap-8">
                             <div className="sticky top-8">
                                 <SpectralTheoremLab />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Section 3: Diagonalization */}
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
+                        {/* Content */}
+                        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
+                            <DiagonalizationContent />
+                        </div>
+                        {/* Lab */}
+                        <div className="flex flex-col gap-8">
+                            <div className="sticky top-8">
+                                <DiagonalizationLab />
                             </div>
                         </div>
                     </div>
