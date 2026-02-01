@@ -1,65 +1,111 @@
-import Image from "next/image";
+import AttentionMatrixLab from "@/components/math-viz/AttentionMatrixLab";
+import VectorPlayground from "@/components/math-viz/VectorPlayground";
+import { MoveRight } from "lucide-react";
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <main className="min-h-screen bg-white">
+      {/* Hero Section */}
+      <section className="bg-slate-900 text-white py-20">
+        <div className="container mx-auto px-4 text-center">
+          <h1 className="text-5xl font-extrabold mb-6 tracking-tight">
+            VisTransformer
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-xl text-slate-300 max-w-2xl mx-auto mb-10">
+            The Geometry of Intelligence. Explore the mathematical foundations of Transformer networks through interactive visualizations.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
+          <a href="#demo" className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-full font-semibold transition-colors">
+            Start Exploring <MoveRight size={20} />
           </a>
         </div>
-      </main>
-    </div>
+      </section>
+
+      {/* Chapters Section */}
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="mb-12 text-center">
+            <h2 className="text-3xl font-bold text-slate-900">Start Learning</h2>
+            <p className="text-slate-600 mt-2">Follow the chapters to master the concepts</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {/* Chapter 1 Card */}
+            <a href="/chapter-1/vector-spaces" className="group block bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-xl hover:border-indigo-200 transition-all">
+              <div className="flex items-center justify-between mb-4">
+                <span className="bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-1 rounded-full">Chapter 1.1</span>
+                <MoveRight className="text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" size={20} />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-indigo-600 transition-colors">
+                Vector Spaces
+              </h3>
+              <p className="text-slate-500 text-sm mb-4">
+                Understand how machines view the world. Dive into vector spaces, axioms, and why they form the backbone of Transformers.
+              </p>
+              <div className="flex items-center gap-2 text-sm text-indigo-600 font-medium">
+                Start Chapter
+              </div>
+            </a>
+
+            {/* Chapter 1.2 Card */}
+            <a href="/chapter-1/linear-transformations" className="group block bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-xl hover:border-indigo-200 transition-all">
+              <div className="flex items-center justify-between mb-4">
+                <span className="bg-purple-100 text-purple-700 text-xs font-bold px-3 py-1 rounded-full">Chapter 1.2</span>
+                <MoveRight className="text-slate-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all" size={20} />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-purple-600 transition-colors">
+                Linear Transformations
+              </h3>
+              <p className="text-slate-500 text-sm mb-4">
+                Explore how matrices transform space. Learn about kernels, images, and why they are the building blocks of neural networks.
+              </p>
+              <div className="flex items-center gap-2 text-sm text-purple-600 font-medium">
+                Start Chapter
+              </div>
+            </a>
+
+            {/* Chapter 1.3 Card */}
+            <a href="/chapter-1/eigenvalues-eigenvectors" className="group block bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-xl hover:border-indigo-200 transition-all">
+              <div className="flex items-center justify-between mb-4">
+                <span className="bg-violet-100 text-violet-700 text-xs font-bold px-3 py-1 rounded-full">Chapter 1.3</span>
+                <MoveRight className="text-slate-400 group-hover:text-violet-600 group-hover:translate-x-1 transition-all" size={20} />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-violet-600 transition-colors">
+                Eigenvalues & Eigenvectors
+              </h3>
+              <p className="text-slate-500 text-sm mb-4">
+                Discover the principal directions of transformations. Learn about spectral decomposition and its role in attention mechanisms.
+              </p>
+              <div className="flex items-center gap-2 text-sm text-violet-600 font-medium">
+                Start Chapter
+              </div>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* Content Section */}
+      <section id="demo" className="py-20 bg-slate-50">
+        <div className="container mx-auto px-4">
+          <div className="mb-12 text-center">
+            <h2 className="text-3xl font-bold text-slate-900">Interactive Labs</h2>
+            <p className="text-slate-600 mt-2">Demos derived from "The Geometry of Intelligence"</p>
+          </div>
+
+          {/* Module 1 Demo */}
+          <div className="mb-20">
+            <VectorPlayground />
+          </div>
+
+          {/* Module 4 Demo */}
+          <div className="mb-20">
+            <AttentionMatrixLab />
+          </div>
+        </div>
+      </section>
+
+      <footer className="bg-slate-900 text-slate-500 py-8 text-center text-sm">
+        <p>Generated for VisTransformer Project</p>
+      </footer>
+    </main>
   );
 }
