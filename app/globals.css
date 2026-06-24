@@ -31,6 +31,12 @@
   /* Code / math */
   --code-bg: #f1f5f9;
   --code-fg: #0f172a;
+
+  /* Syntax tokens (light) */
+  --tok-keyword: #7c3aed;
+  --tok-string: #047857;
+  --tok-comment: #64748b;
+  --tok-number: #b45309;
 }
 
 .dark {
@@ -52,6 +58,12 @@
 
   --code-bg: #1e293b;
   --code-fg: #e5e7eb;
+
+  /* Syntax tokens (dark) */
+  --tok-keyword: #c4b5fd;
+  --tok-string: #6ee7b7;
+  --tok-comment: #94a3b8;
+  --tok-number: #fcd34d;
 }
 
 @theme inline {
@@ -185,6 +197,12 @@ body {
   padding: 0.25rem 0;
 }
 .dark .katex { color: var(--foreground); }
+
+/* Code syntax tokens. */
+.tok-keyword { color: var(--tok-keyword); }
+.tok-string { color: var(--tok-string); }
+.tok-comment { color: var(--tok-comment); font-style: italic; }
+.tok-number { color: var(--tok-number); }
 
 /* Thin, unobtrusive scrollbars for the sidebar. */
 .scroll-slim::-webkit-scrollbar { width: 8px; height: 8px; }
