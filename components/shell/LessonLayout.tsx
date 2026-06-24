@@ -20,10 +20,12 @@ export default function LessonLayout({ children, width = "wide" }: Props) {
   const pathname = usePathname();
   const loc = findLesson(normalize(pathname || "/"));
 
-  const maxW = width === "prose" ? "max-w-3xl" : "max-w-5xl";
+  // "prose" keeps a tight reading column; "wide" fills the page so that the
+  // interactive visualizations have room to breathe.
+  const maxW = width === "prose" ? "mx-auto max-w-3xl" : "w-full max-w-[1700px]";
 
   return (
-    <article className={`mx-auto ${maxW}`}>
+    <article className={maxW}>
       {loc && (
         <header className="mb-8 border-b border-[var(--border)] pb-6">
           <Link
@@ -32,10 +34,10 @@ export default function LessonLayout({ children, width = "wide" }: Props) {
           >
             {loc.section.number} · {loc.section.title}
           </Link>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-[var(--foreground)] sm:text-4xl">
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-[var(--foreground)] sm:text-3xl">
             {loc.lesson.title}
           </h1>
-          <p className="mt-2 text-[var(--muted)]">{loc.lesson.blurb}</p>
+          <p className="mt-2 text-sm text-[var(--muted)]">{loc.lesson.blurb}</p>
           {loc.lesson.minutes && (
             <p className="mt-3 inline-flex items-center gap-1.5 text-sm text-[var(--faint)]">
               <Clock size={14} /> {loc.lesson.minutes} min

@@ -44,7 +44,7 @@ export default function LinearTransformationsPage() {
                 <AudioExplainer sections={AUDIO_SECTIONS} accentColor="emerald" />
             </div>
 
-            <div className="grid grid-cols-1 gap-12 xl:grid-cols-2">
+            <div className="grid grid-cols-1 gap-10 xl:grid-cols-[26rem_minmax(0,1fr)]">
                 <div className="min-w-0">
                     <LinearTransformationsContent />
                 </div>

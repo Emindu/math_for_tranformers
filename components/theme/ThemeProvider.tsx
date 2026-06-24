@@ -17,8 +17,8 @@ const STORAGE_KEY = "gi-theme";
 export const themeInitScript = `
 (function() {
   try {
+    // Default to light; only go dark if the user explicitly chose it before.
     var t = localStorage.getItem('${STORAGE_KEY}');
-    if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     if (t === 'dark') document.documentElement.classList.add('dark');
   } catch (e) {}
 })();

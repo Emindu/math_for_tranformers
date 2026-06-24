@@ -3,7 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronRight, Menu, X, Sparkles } from "lucide-react";
+import {
+  ChevronRight,
+  Menu,
+  X,
+  Sparkles,
+  PanelLeftClose,
+  PanelLeftOpen,
+} from "lucide-react";
 import {
   sections,
   sectionHref,
@@ -19,6 +26,28 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const path = normalize(pathname || "/");
   const isHome = path === "/";
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  // Restore the saved desktop sidebar state.
+  useEffect(() => {
+    try {
+      setCollapsed(localStorage.getItem("gi-sidebar") === "collapsed");
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const toggleCollapsed = () => {
+    setCollapsed((c) => {
+      const next = !c;
+      try {
+        localStorage.setItem("gi-sidebar", next ? "collapsed" : "open");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
 
   // Close the mobile drawer whenever the route changes.
   useEffect(() => {
@@ -37,6 +66,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             aria-label="Open navigation"
           >
             <Menu size={18} />
+          </button>
+
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            className="hidden lg:inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--muted)] hover:bg-[var(--surface-3)] hover:text-[var(--foreground)] transition-colors"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
           </button>
 
           <Link href="/" className="flex items-center gap-2 shrink-0">
@@ -58,13 +97,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <div className="mx-auto flex w-full max-w-[1500px]">
+      <div className="flex w-full">
         {/* Sidebar — desktop */}
-        <aside className="hidden lg:block w-72 shrink-0 border-r border-[var(--border)]">
-          <div className="sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto scroll-slim px-3 py-6">
-            <Nav path={path} />
-          </div>
-        </aside>
+        {!collapsed && (
+          <aside className="hidden lg:block w-72 shrink-0 border-r border-[var(--border)]">
+            <div className="sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto scroll-slim px-3 py-6">
+              <Nav path={path} />
+            </div>
+          </aside>
+        )}
 
         {/* Sidebar — mobile drawer */}
         {mobileOpen && (
