@@ -103,14 +103,14 @@ export default function CodeEditor({
 
   return (
     <div
-      className="vscode-editor flex overflow-hidden font-mono"
-      style={{ fontSize: "13px", lineHeight: "20px", background: "#1e1e1e" }}
+      className="flex overflow-hidden font-mono bg-[var(--surface-2)]"
+      style={{ fontSize: "13px", lineHeight: "20px" }}
     >
       {/* ── Line-number gutter ── */}
       <div
         ref={gutterRef}
         aria-hidden
-        className="select-none overflow-hidden"
+        className="select-none overflow-hidden border-r border-[var(--border)] bg-[var(--surface-2)]"
         style={{
           width: gutterWidth,
           flexShrink: 0,
@@ -118,18 +118,14 @@ export default function CodeEditor({
           paddingBottom: "16px",
           paddingRight: "12px",
           paddingLeft: "8px",
-          background: "#1e1e1e",
-          borderRight: "1px solid #2d2d2d",
           textAlign: "right",
         }}
       >
         {Array.from({ length: lineCount }, (_, i) => (
           <div
             key={i}
-            style={{
-              lineHeight: "20px",
-              color: i === activeLine ? "#c6c6c6" : "#4d4d4d",
-            }}
+            className={i === activeLine ? "text-[var(--foreground)]" : "text-[var(--faint)]"}
+            style={{ lineHeight: "20px" }}
           >
             {i + 1}
           </div>
@@ -141,13 +137,14 @@ export default function CodeEditor({
         {/* Active-line background */}
         <div
           aria-hidden
+          className="bg-[var(--surface-3)]"
           style={{
             position: "absolute",
             left: 0,
             right: 0,
             top: 16 + activeLine * 20,
             height: 20,
-            background: "rgba(255,255,255,0.04)",
+            opacity: 0.5,
             pointerEvents: "none",
             zIndex: 0,
           }}
@@ -157,18 +154,17 @@ export default function CodeEditor({
         <pre
           ref={preRef}
           aria-hidden
-          className="m-0 overflow-hidden whitespace-pre"
+          className="m-0 overflow-hidden whitespace-pre bg-transparent"
           style={{
             fontSize: "13px",
             lineHeight: "20px",
             tabSize: 4,
             padding: "16px",
-            background: "transparent",
             position: "relative",
             zIndex: 1,
           }}
         >
-          <code className="vscode-editor font-mono" style={{ color: "#d4d9e2" }}>
+          <code className="font-mono text-[var(--foreground)]">
             {highlight(value + "\n")}
           </code>
         </pre>
@@ -186,14 +182,13 @@ export default function CodeEditor({
           wrap="off"
           spellCheck={false}
           aria-label={ariaLabel}
-          className="vscode-scrollbar absolute inset-0 m-0 resize-none overflow-auto whitespace-pre border-0 bg-transparent text-transparent outline-none"
+          className="vscode-scrollbar absolute inset-0 m-0 resize-none overflow-auto whitespace-pre border-0 bg-transparent text-transparent outline-none caret-[var(--foreground)]"
           style={{
             fontFamily: "inherit",
             fontSize: "13px",
             lineHeight: "20px",
             tabSize: 4,
             padding: "16px",
-            caretColor: "#aeafad",
             zIndex: 2,
           }}
         />

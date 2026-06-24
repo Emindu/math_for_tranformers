@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { EigenIntroContent, SpectralTheoremContent, DiagonalizationContent } from '@/components/content/EigenvaluesEigenvectors';
+import EigenvaluesEigenvectorsContent from '@/components/content/EigenvaluesEigenvectors';
 import EigenvalueLab from '@/components/math-viz/EigenvalueLab';
 import SpectralTheoremLab from '@/components/math-viz/SpectralTheoremLab';
 import DiagonalizationLab from '@/components/math-viz/DiagonalizationLab';
@@ -35,35 +35,18 @@ const AUDIO_SECTIONS: AudioSection[] = [
     },
 ];
 
-function LessonSection({
-    content,
-    viz,
-}: {
-    content: React.ReactNode;
-    viz: React.ReactNode;
-}) {
-    return (
-        <div className="grid grid-cols-1 gap-10 xl:grid-cols-[26rem_minmax(0,1fr)]">
-            <div className="min-w-0">{content}</div>
-            <div className="flex flex-col gap-8">
-                <div className="xl:sticky xl:top-20">{viz}</div>
-            </div>
-        </div>
-    );
-}
-
 export default function EigenvaluesEigenvectorsPage() {
     return (
-        <LessonLayout>
-            <div className="mb-10 max-w-3xl">
+        <LessonLayout width="wide">
+            <div className="mb-10">
                 <AudioExplainer sections={AUDIO_SECTIONS} accentColor="orange" />
             </div>
 
-            <div className="flex flex-col gap-20">
-                <LessonSection content={<EigenIntroContent />} viz={<EigenvalueLab />} />
-                <LessonSection content={<SpectralTheoremContent />} viz={<SpectralTheoremLab />} />
-                <LessonSection content={<DiagonalizationContent />} viz={<DiagonalizationLab />} />
-            </div>
+            <EigenvaluesEigenvectorsContent
+                introLab={<EigenvalueLab />}
+                spectralLab={<SpectralTheoremLab />}
+                diagonalizationLab={<DiagonalizationLab />}
+            />
         </LessonLayout>
     );
 }
