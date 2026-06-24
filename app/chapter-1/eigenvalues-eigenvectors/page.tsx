@@ -5,9 +5,8 @@ import { EigenIntroContent, SpectralTheoremContent, DiagonalizationContent } fro
 import EigenvalueLab from '@/components/math-viz/EigenvalueLab';
 import SpectralTheoremLab from '@/components/math-viz/SpectralTheoremLab';
 import DiagonalizationLab from '@/components/math-viz/DiagonalizationLab';
-import { ChevronLeft } from 'lucide-react';
-import Link from 'next/link';
 import AudioExplainer, { AudioSection } from '@/components/ui/AudioExplainer';
+import LessonLayout from '@/components/shell/LessonLayout';
 
 const AUDIO_SECTIONS: AudioSection[] = [
     {
@@ -36,62 +35,35 @@ const AUDIO_SECTIONS: AudioSection[] = [
     },
 ];
 
+function LessonSection({
+    content,
+    viz,
+}: {
+    content: React.ReactNode;
+    viz: React.ReactNode;
+}) {
+    return (
+        <div className="grid grid-cols-1 gap-12 xl:grid-cols-2">
+            <div className="min-w-0">{content}</div>
+            <div className="flex flex-col gap-8">
+                <div className="xl:sticky xl:top-20">{viz}</div>
+            </div>
+        </div>
+    );
+}
+
 export default function EigenvaluesEigenvectorsPage() {
     return (
-        <main className="min-h-screen bg-slate-50 py-12 px-4">
-            <div className="max-w-7xl mx-auto">
-                {/* Header */}
-                <div className="mb-8">
-                    <Link href="/" className="inline-flex items-center text-slate-500 hover:text-indigo-600 mb-4 transition-colors">
-                        <ChevronLeft size={16} /> Back to Home
-                    </Link>
-                    <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">The Geometry of Intelligence</h1>
-                    <p className="text-xl text-slate-500 mt-2">Chapter 1: Representing Data as Vectors</p>
-                </div>
-
-                {/* Audio Explainer */}
-                <div className="mb-12 max-w-3xl">
-                    <AudioExplainer sections={AUDIO_SECTIONS} accentColor="orange" />
-                </div>
-
-                <div className="flex flex-col gap-24">
-                    {/* Section 1: Eigenvalues */}
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
-                        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
-                            <EigenIntroContent />
-                        </div>
-                        <div className="flex flex-col gap-8">
-                            <div className="sticky top-8">
-                                <EigenvalueLab />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Section 2: Spectral Theorem */}
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
-                        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
-                            <SpectralTheoremContent />
-                        </div>
-                        <div className="flex flex-col gap-8">
-                            <div className="sticky top-8">
-                                <SpectralTheoremLab />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Section 3: Diagonalization */}
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
-                        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
-                            <DiagonalizationContent />
-                        </div>
-                        <div className="flex flex-col gap-8">
-                            <div className="sticky top-8">
-                                <DiagonalizationLab />
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <LessonLayout>
+            <div className="mb-10 max-w-3xl">
+                <AudioExplainer sections={AUDIO_SECTIONS} accentColor="orange" />
             </div>
-        </main>
+
+            <div className="flex flex-col gap-20">
+                <LessonSection content={<EigenIntroContent />} viz={<EigenvalueLab />} />
+                <LessonSection content={<SpectralTheoremContent />} viz={<SpectralTheoremLab />} />
+                <LessonSection content={<DiagonalizationContent />} viz={<DiagonalizationLab />} />
+            </div>
+        </LessonLayout>
     );
 }
