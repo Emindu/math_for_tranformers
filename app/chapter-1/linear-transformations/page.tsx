@@ -4,11 +4,9 @@ import React from 'react';
 import LinearTransformationsContent from '@/components/content/LinearTransformations';
 import LinearTransformationLab from '@/components/math-viz/LinearTransformationLab';
 import KernelImageLab from '@/components/math-viz/KernelImageLab';
-import Latex from 'react-latex-next';
 import 'katex/dist/katex.min.css';
 import AudioExplainer, { AudioSection } from '@/components/ui/AudioExplainer';
 import LessonLayout from '@/components/shell/LessonLayout';
-import Callout from '@/components/ui/Callout';
 
 const AUDIO_SECTIONS: AudioSection[] = [
     {
@@ -39,30 +37,15 @@ const AUDIO_SECTIONS: AudioSection[] = [
 
 export default function LinearTransformationsPage() {
     return (
-        <LessonLayout>
-            <div className="mb-10 max-w-3xl">
+        <LessonLayout width="wide">
+            <div className="mb-10">
                 <AudioExplainer sections={AUDIO_SECTIONS} accentColor="emerald" />
             </div>
 
-            <div className="grid grid-cols-1 gap-10 xl:grid-cols-[26rem_minmax(0,1fr)]">
-                <div className="min-w-0">
-                    <LinearTransformationsContent />
-                </div>
-
-                <div className="flex flex-col gap-8">
-                    <div className="xl:sticky xl:top-20">
-                        <LinearTransformationLab />
-
-                        <Callout>
-                            In Transformers, the <strong>Query (Q)</strong>, <strong>Key (K)</strong>, and <strong>Value (V)</strong> matrices are linear transformations applied to input embeddings.
-                            Attention itself is a composition of these transformations, projecting data into subspaces where similarity can be computed —
-                            the inner workings of <Latex>{'$\\text{Softmax}(QK^T/\\sqrt{d_k})V$'}</Latex>.
-                        </Callout>
-
-                        <KernelImageLab />
-                    </div>
-                </div>
-            </div>
+            <LinearTransformationsContent
+                transformLab={<LinearTransformationLab />}
+                kernelLab={<KernelImageLab />}
+            />
         </LessonLayout>
     );
 }

@@ -158,15 +158,19 @@ export default function SubspaceBasisLab() {
             </div>
 
             {/* Viz */}
-            <div className="flex-1 h-[500px] bg-slate-900 rounded-lg overflow-hidden relative">
-                <Canvas camera={{ position: [5, 5, 8], fov: 45 }}>
-                    <color attach="background" args={['#0f172a']} />
+            <div className="flex-1 h-[500px] bg-white rounded-lg overflow-hidden relative border border-slate-200">
+                <Canvas camera={{ position: [5, 5, 8], fov: 45 }} dpr={[1, 2]} gl={{ antialias: true }}>
+                    <color attach="background" args={['#ffffff']} />
                     <OrbitControls makeDefault />
-                    <ambientLight intensity={0.5} />
-                    <pointLight position={[10, 10, 10]} />
+                    <ambientLight intensity={0.85} />
+                    <directionalLight position={[5, 8, 5]} intensity={0.7} />
+                    <hemisphereLight args={['#ffffff', '#e2e8f0', 0.5]} />
 
-                    <Grid args={[10, 10]} cellSize={1} cellThickness={0.5} cellColor="#334155" sectionSize={5} sectionThickness={1} sectionColor="#475569" fadeDistance={25} />
+                    <Grid args={[10, 10]} cellSize={1} cellThickness={0.6} cellColor="#e2e8f0" sectionSize={5} sectionThickness={1.1} sectionColor="#cbd5e1" fadeDistance={28} />
                     <axesHelper args={[5]} />
+                    <Text position={[5.3, 0, 0]} fontSize={0.3} color="#ef4444">X</Text>
+                    <Text position={[0, 5.3, 0]} fontSize={0.3} color="#16a34a">Y</Text>
+                    <Text position={[0, 0, 5.3]} fontSize={0.3} color="#2563eb">Z</Text>
 
                     {/* Subspace Plane */}
                     {!planeData.isCollinear && (
@@ -174,7 +178,7 @@ export default function SubspaceBasisLab() {
                             args={[20, 20]}
                             quaternion={planeData.quaternion}
                         >
-                            <meshStandardMaterial color="#3b82f6" transparent opacity={0.1} side={THREE.DoubleSide} />
+                            <meshStandardMaterial color="#3b82f6" transparent opacity={0.18} side={THREE.DoubleSide} />
                         </Plane>
                     )}
 
@@ -190,10 +194,10 @@ export default function SubspaceBasisLab() {
                     <Line points={[new THREE.Vector3(...v2).multiplyScalar(c2), new THREE.Vector3(...p)]} color="#2563eb" opacity={0.3} transparent dashed dashSize={0.2} gapSize={0.1} />
 
                 </Canvas>
-                <div className="absolute bottom-4 left-4 text-xs text-slate-400 pointer-events-none">
+                <div className="absolute bottom-4 left-4 text-xs text-slate-600 pointer-events-none rounded-md bg-white/80 px-2 py-1 shadow-sm backdrop-blur">
                     <p>
                         {planeData.isCollinear
-                            ? <span className="text-orange-400 font-bold">Vectors are collinear! Subspace collapses to a line.</span>
+                            ? <span className="text-orange-600 font-bold">Vectors are collinear! Subspace collapses to a line.</span>
                             : "Blue plane represents the subspace spanned by v1 and v2."
                         }
                     </p>

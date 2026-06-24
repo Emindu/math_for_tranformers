@@ -204,6 +204,14 @@ body {
 .tok-comment { color: var(--tok-comment); font-style: italic; }
 .tok-number { color: var(--tok-number); }
 
+/* VS Code Dark+ colour overrides — applied to editable editors and code blocks. */
+.vscode-editor {
+  --tok-keyword: #569cd6;
+  --tok-string:  #ce9178;
+  --tok-comment: #6a9955;
+  --tok-number:  #b5cea8;
+}
+
 /* Thin, unobtrusive scrollbars for the sidebar. */
 .scroll-slim::-webkit-scrollbar { width: 8px; height: 8px; }
 .scroll-slim::-webkit-scrollbar-thumb {
@@ -211,3 +219,11 @@ body {
   border-radius: 4px;
 }
 .scroll-slim::-webkit-scrollbar-track { background: transparent; }
+
+/* VS Code-style scrollbars for the editor textarea. */
+.vscode-scrollbar::-webkit-scrollbar { width: 10px; height: 10px; }
+.vscode-scrollbar::-webkit-scrollbar-thumb {
+  background: #424242;
+  border-radius: 0;
+}
+.vscode-scrollbar::-webkit-scrollbar-track { background: #1e1e1e; }

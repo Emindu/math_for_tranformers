@@ -104,7 +104,7 @@ export default function KernelImageLab() {
     const te2 = applyMatrix(matrix, e2);
 
     return (
-        <div className="p-6 bg-slate-50 rounded-xl border border-slate-200 shadow-sm flex flex-col lg:flex-row gap-6 mt-8 relative z-10">
+        <div className="p-6 bg-slate-50 rounded-xl border border-slate-200 shadow-sm flex flex-col lg:flex-row gap-6 relative z-10">
             {/* Controls */}
             <div className="w-full lg:w-1/3 space-y-4">
                 <div>
@@ -179,14 +179,15 @@ export default function KernelImageLab() {
 
             {/* Right Column: Viz + Calculation Steps */}
             <div className="flex-1 flex flex-col gap-4">
-                <div className="h-[280px] bg-slate-900 rounded-lg overflow-hidden relative">
-                    <Canvas camera={{ position: [0, 0, 4], fov: 55 }}>
-                        <color attach="background" args={['#0f172a']} />
+                <div className="h-[280px] bg-white rounded-lg overflow-hidden relative border border-slate-200">
+                    <Canvas camera={{ position: [0, 0, 4], fov: 55 }} dpr={[1, 2]} gl={{ antialias: true }}>
+                        <color attach="background" args={['#ffffff']} />
                         <OrbitControls makeDefault />
-                        <ambientLight intensity={0.6} />
-                        <pointLight position={[10, 10, 10]} />
+                        <ambientLight intensity={0.85} />
+                        <directionalLight position={[5, 8, 5]} intensity={0.7} />
+                        <hemisphereLight args={['#ffffff', '#e2e8f0', 0.5]} />
 
-                        <Grid args={[10, 10]} cellSize={1} cellThickness={0.5} cellColor="#334155" sectionSize={5} sectionThickness={1} sectionColor="#475569" fadeDistance={20} />
+                        <Grid args={[10, 10]} cellSize={1} cellThickness={0.5} cellColor="#e2e8f0" sectionSize={5} sectionThickness={1} sectionColor="#cbd5e1" fadeDistance={20} />
 
                         {/* Original Basis (Domain) */}
                         <Arrow start={[0, 0, 0]} end={[1, 0, 0]} color="#64748b" label="e₁" dashed />

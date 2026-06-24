@@ -81,7 +81,7 @@ export default function LinearTransformationLab() {
     const te2 = applyMatrix(matrix, e2);
 
     return (
-        <div className="p-6 bg-slate-50 rounded-xl border border-slate-200 shadow-sm flex flex-col lg:flex-row gap-6 mt-8 relative z-10">
+        <div className="p-6 bg-slate-50 rounded-xl border border-slate-200 shadow-sm flex flex-col lg:flex-row gap-6 relative z-10">
             {/* Controls */}
             <div className="w-full lg:w-1/3 space-y-6">
                 <div>
@@ -139,14 +139,15 @@ export default function LinearTransformationLab() {
             </div>
 
             {/* Viz */}
-            <div className="flex-1 h-[500px] bg-slate-900 rounded-lg overflow-hidden relative">
-                <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
-                    <color attach="background" args={['#0f172a']} />
+            <div className="flex-1 h-[500px] bg-white rounded-lg overflow-hidden relative border border-slate-200">
+                <Canvas camera={{ position: [0, 0, 8], fov: 45 }} dpr={[1, 2]} gl={{ antialias: true }}>
+                    <color attach="background" args={['#ffffff']} />
                     <OrbitControls makeDefault />
-                    <ambientLight intensity={0.5} />
-                    <pointLight position={[10, 10, 10]} />
+                    <ambientLight intensity={0.85} />
+                    <directionalLight position={[5, 8, 5]} intensity={0.7} />
+                    <hemisphereLight args={['#ffffff', '#e2e8f0', 0.5]} />
 
-                    <Grid args={[10, 10]} cellSize={1} cellThickness={0.5} cellColor="#334155" sectionSize={5} sectionThickness={1} sectionColor="#475569" fadeDistance={25} />
+                    <Grid args={[10, 10]} cellSize={1} cellThickness={0.5} cellColor="#e2e8f0" sectionSize={5} sectionThickness={1} sectionColor="#cbd5e1" fadeDistance={25} />
 
                     {/* Original Basis Vectors (dashed) */}
                     <Line points={[new THREE.Vector3(0, 0, 0), new THREE.Vector3(1, 0, 0)]} color="#64748b" lineWidth={2} dashed dashSize={0.1} gapSize={0.05} />
@@ -165,8 +166,8 @@ export default function LinearTransformationLab() {
                     ))}
 
                 </Canvas>
-                <div className="absolute bottom-4 left-4 text-xs text-slate-400 pointer-events-none">
-                    <p><span className="text-blue-400">Blue: T(e1)</span>, <span className="text-red-400">Red: T(e2)</span>, <span className="text-purple-400">Purple dots: Transformed grid</span></p>
+                <div className="absolute bottom-4 left-4 text-xs text-slate-600 pointer-events-none bg-white/80 rounded px-2 py-1 shadow-sm backdrop-blur">
+                    <p><span className="text-blue-600">Blue: T(e1)</span>, <span className="text-red-500">Red: T(e2)</span>, <span className="text-purple-500">Purple: Transformed grid</span></p>
                 </div>
             </div>
         </div>

@@ -135,15 +135,19 @@ export default function VectorAxiomsLab() {
             </div>
 
             {/* Viz */}
-            <div className="flex-1 h-[500px] bg-slate-900 rounded-lg overflow-hidden relative">
-                <Canvas camera={{ position: [5, 5, 8], fov: 45 }}>
-                    <color attach="background" args={['#0f172a']} />
+            <div className="flex-1 h-[500px] bg-white rounded-lg overflow-hidden relative border border-slate-200">
+                <Canvas camera={{ position: [5, 5, 8], fov: 45 }} dpr={[1, 2]} gl={{ antialias: true }}>
+                    <color attach="background" args={['#ffffff']} />
                     <OrbitControls makeDefault />
-                    <ambientLight intensity={0.5} />
-                    <pointLight position={[10, 10, 10]} />
+                    <ambientLight intensity={0.85} />
+                    <directionalLight position={[5, 8, 5]} intensity={0.7} />
+                    <hemisphereLight args={['#ffffff', '#e2e8f0', 0.5]} />
 
-                    <Grid args={[10, 10]} cellSize={1} cellThickness={0.5} cellColor="#334155" sectionSize={5} sectionThickness={1} sectionColor="#475569" fadeDistance={25} />
+                    <Grid args={[10, 10]} cellSize={1} cellThickness={0.6} cellColor="#e2e8f0" sectionSize={5} sectionThickness={1.1} sectionColor="#cbd5e1" fadeDistance={28} />
                     <axesHelper args={[5]} />
+                    <Text position={[5.3, 0, 0]} fontSize={0.3} color="#ef4444">X</Text>
+                    <Text position={[0, 5.3, 0]} fontSize={0.3} color="#16a34a">Y</Text>
+                    <Text position={[0, 0, 5.3]} fontSize={0.3} color="#2563eb">Z</Text>
 
                     {/* u */}
                     <Arrow start={[0, 0, 0]} end={u} color="#4f46e5" label="u" />
@@ -169,8 +173,8 @@ export default function VectorAxiomsLab() {
                     </group>
 
                 </Canvas>
-                <div className="absolute bottom-4 left-4 text-xs text-slate-400 pointer-events-none">
-                    <p><span className="text-indigo-400">Blue: u</span>, <span className="text-rose-400">Red: v</span>, <span className="text-purple-400">Purple: u+v</span>, <span className="text-emerald-400">Green: αu</span></p>
+                <div className="absolute bottom-4 left-4 text-xs pointer-events-none rounded-md bg-white/80 px-2 py-1 shadow-sm backdrop-blur">
+                    <p><span className="text-indigo-600 font-medium">Blue: u</span>, <span className="text-rose-600 font-medium">Red: v</span>, <span className="text-purple-600 font-medium">Purple: u+v</span>, <span className="text-emerald-600 font-medium">Green: αu</span></p>
                 </div>
             </div>
         </div>

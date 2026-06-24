@@ -24,9 +24,12 @@ export type QuizQuestion = {
 export default function Quiz({
   questions,
   title = "Check your understanding",
+  bare = false,
 }: {
   questions: QuizQuestion[];
   title?: string;
+  /** Drop the outer card chrome (border/background/padding) when embedded. */
+  bare?: boolean;
 }) {
   // Selected option index per question (null = unanswered).
   const [answers, setAnswers] = useState<(number | null)[]>(
@@ -47,7 +50,11 @@ export default function Quiz({
   const allDone = answered === questions.length;
 
   return (
-    <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
+    <section
+      className={
+        bare ? "" : "rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6"
+      }
+    >
       <div className="mb-5 flex items-center justify-between gap-4">
         <h3 className="text-lg font-semibold text-[var(--foreground)]">{title}</h3>
         <span className="shrink-0 rounded-full bg-[var(--accent-soft)] px-3 py-1 text-sm font-medium text-[var(--accent)]">

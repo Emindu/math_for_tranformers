@@ -4,78 +4,9 @@ import React from 'react';
 import VectorSpacesContent from '@/components/content/VectorSpaces';
 import VectorAxiomsLab from '@/components/math-viz/VectorAxiomsLab';
 import SubspaceBasisLab from '@/components/math-viz/SubspaceBasisLab';
-import Latex from 'react-latex-next';
 import 'katex/dist/katex.min.css';
 import AudioExplainer, { AudioSection } from '@/components/ui/AudioExplainer';
 import LessonLayout from '@/components/shell/LessonLayout';
-import Callout from '@/components/ui/Callout';
-import VectorSpacesPythonExamples from '@/components/content/vector-spaces/PythonExamples';
-import Quiz, { QuizQuestion } from '@/components/ui/Quiz';
-
-const QUIZ: QuizQuestion[] = [
-    {
-        question: "How many axioms must a set satisfy to be a vector space?",
-        options: ["3", "8", "10", "Infinitely many"],
-        answer: 2,
-        explanation:
-            "Ten axioms in total — eight governing vector addition and two more for scalar multiplication.",
-    },
-    {
-        question: "Which condition is NOT required for a subset $W$ to be a subspace?",
-        options: [
-            "$W$ contains the zero vector",
-            "$W$ is closed under addition",
-            "$W$ is closed under scalar multiplication",
-            "$W$ contains a basis of the whole space",
-        ],
-        answer: 3,
-        explanation:
-            "A subspace only needs the zero vector and closure under addition and scalar multiplication. It need not span the whole space.",
-    },
-    {
-        question: "A set of vectors is linearly independent when:",
-        options: [
-            "They all have the same length",
-            "None can be written as a linear combination of the others",
-            "They are mutually orthogonal",
-            "Their sum is the zero vector",
-        ],
-        answer: 1,
-        explanation:
-            "Independence means no vector is redundant — none is a linear combination of the rest. Orthogonality is sufficient but not necessary.",
-    },
-    {
-        question: "The dimension of a vector space is:",
-        options: [
-            "The number of vectors in any basis",
-            "The largest entry of any vector",
-            "The number of axioms it satisfies",
-            "Always infinite",
-        ],
-        answer: 0,
-        explanation:
-            "Every basis of a space has the same size, and that number is the dimension.",
-    },
-    {
-        question: "Is the set $\\{(x, y) \\in \\mathbb{R}^2 : x \\geq 0\\}$ a subspace?",
-        options: ["Yes", "No"],
-        answer: 1,
-        explanation:
-            "No — it isn't closed under scalar multiplication. Multiplying $(1, 0)$ by $-1$ gives $(-1, 0)$, which is outside the set.",
-    },
-    {
-        question: "In a Transformer, the residual connection $x + \\text{Layer}(x)$ is an instance of:",
-        options: [
-            "Scalar multiplication",
-            "Vector addition",
-            "The dot product",
-            "Matrix inversion",
-        ],
-        answer: 1,
-        explanation:
-            "Adding the input back to the layer output is exactly the vector-addition axiom in action.",
-    },
-];
 
 const AUDIO_SECTIONS: AudioSection[] = [
     {
@@ -106,43 +37,15 @@ const AUDIO_SECTIONS: AudioSection[] = [
 
 export default function VectorSpacesPage() {
     return (
-        <LessonLayout>
-            <div className="mb-10 max-w-3xl">
+        <LessonLayout width="wide">
+            <div className="mb-10">
                 <AudioExplainer sections={AUDIO_SECTIONS} accentColor="blue" />
             </div>
 
-            <div className="grid grid-cols-1 gap-10 xl:grid-cols-[26rem_minmax(0,1fr)]">
-                <div className="min-w-0">
-                    <VectorSpacesContent />
-                </div>
-
-                <div className="flex flex-col gap-8">
-                    <div className="xl:sticky xl:top-20">
-                        <VectorAxiomsLab />
-
-                        <Callout>
-                            Transformers process data (words, image patches) as <strong>vectors</strong> in a high-dimensional space (<Latex>{"$d_{model} \\approx 512+$"}</Latex>).
-                            Operations like <em>Attention</em> rely on vector arithmetic (dot products, weighted sums) grounded in these 10 axioms.
-                            The <strong>Residual Connection</strong> (<Latex>{"$x + \\text{Layer}(x)$"}</Latex>) is a direct application of vector addition.
-                        </Callout>
-
-                        <div className="mt-8">
-                            <SubspaceBasisLab />
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <section className="mt-20 border-t border-[var(--border)] pt-12">
-                <VectorSpacesPythonExamples />
-            </section>
-
-            <section className="mt-20 max-w-3xl border-t border-[var(--border)] pt-12">
-                <p className="mb-6 text-xs font-semibold uppercase tracking-wider text-[var(--accent)]">
-                    Practice
-                </p>
-                <Quiz questions={QUIZ} />
-            </section>
+            <VectorSpacesContent
+                axiomsViz={<VectorAxiomsLab />}
+                subspacesViz={<SubspaceBasisLab />}
+            />
         </LessonLayout>
     );
 }
