@@ -46,7 +46,7 @@ export default function Home() {
       </section>
 
       {/* Curriculum */}
-      <section id="curriculum" className="mx-auto max-w-4xl px-6 py-16">
+      <section id="curriculum" className="mx-auto max-w-6xl px-6 py-16">
         <h2 className="text-2xl font-bold tracking-tight text-[var(--foreground)]">
           Curriculum
         </h2>
@@ -73,7 +73,7 @@ export default function Home() {
                 {section.description}
               </p>
 
-              <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
+              <div className="mt-4 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
                 {section.lessons.map((lesson) => (
                   <Link
                     key={lesson.href}

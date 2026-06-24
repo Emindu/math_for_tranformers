@@ -43,7 +43,7 @@ function LessonSection({
     viz: React.ReactNode;
 }) {
     return (
-        <div className="grid grid-cols-1 gap-12 xl:grid-cols-2">
+        <div className="grid grid-cols-1 gap-10 xl:grid-cols-[26rem_minmax(0,1fr)]">
             <div className="min-w-0">{content}</div>
             <div className="flex flex-col gap-8">
                 <div className="xl:sticky xl:top-20">{viz}</div>
