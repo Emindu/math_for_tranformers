@@ -1,10 +1,10 @@
 "use client";
 
 import React from 'react';
-import { ChevronLeft } from 'lucide-react';
-import Link from 'next/link';
-import { TransformerApplications } from '@/components/content/GroupTheoryContent';
+import { ApplicationsContent } from '@/components/content/GroupTheoryContent';
+import EquivarianceLab from '@/components/math-viz/EquivarianceLab';
 import AudioExplainer, { AudioSection } from '@/components/ui/AudioExplainer';
+import LessonLayout from '@/components/shell/LessonLayout';
 
 const AUDIO_SECTIONS: AudioSection[] = [
     {
@@ -35,39 +35,14 @@ const AUDIO_SECTIONS: AudioSection[] = [
 
 export default function ApplicationsPage() {
     return (
-        <main className="min-h-screen bg-slate-50 py-12 px-4">
-            <div className="max-w-7xl mx-auto">
-                {/* Header */}
-                <div className="mb-8">
-                    <Link href="/chapter-1/group-theory" className="inline-flex items-center text-slate-500 hover:text-indigo-600 mb-4 transition-colors">
-                        <ChevronLeft size={16} /> Back to Group Theory
-                    </Link>
-                    <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">The Geometry of Intelligence</h1>
-                    <p className="text-xl text-slate-500 mt-2">Chapter 1.2.3: Applications to Transformers</p>
-                </div>
-
-                {/* Audio Explainer */}
-                <div className="mb-12 max-w-3xl">
-                    <AudioExplainer sections={AUDIO_SECTIONS} accentColor="amber" />
-                </div>
-
-                <div className="flex flex-col gap-24">
-                    {/* Transformer Applications - full width */}
-                    <div className="w-full">
-                        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 max-w-4xl mx-auto">
-                            <TransformerApplications />
-                        </div>
-                    </div>
-                </div>
-
-                {/* Navigation */}
-                <div className="mt-16 flex justify-start">
-                    <Link href="/chapter-1/group-theory/representation-theory"
-                        className="inline-flex items-center gap-2 text-slate-600 hover:text-indigo-600 font-semibold transition-colors">
-                        ← Previous: Representation Theory
-                    </Link>
-                </div>
+        <LessonLayout width="wide">
+            <div className="mb-10">
+                <AudioExplainer sections={AUDIO_SECTIONS} accentColor="amber" />
             </div>
-        </main>
+
+            <ApplicationsContent
+                equivarianceLab={<EquivarianceLab />}
+            />
+        </LessonLayout>
     );
 }

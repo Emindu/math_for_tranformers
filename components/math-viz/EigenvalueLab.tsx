@@ -1,676 +1,267 @@
 "use client";
 
-import React, { useState, useMemo, useRef, useCallback } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
-import { OrbitControls, Grid, Text, Line } from '@react-three/drei';
-import * as THREE from 'three';
+import React, { useState, useMemo } from 'react';
 import Latex from 'react-latex-next';
 import 'katex/dist/katex.min.css';
-import { Maximize2, Minimize2, X } from 'lucide-react';
 
-// Thick arrow with cone head for clear visibility
-function ThickArrow({ start, end, color, label, lineWidth = 4 }: { start: [number, number, number], end: [number, number, number], color: string, label?: string, lineWidth?: number }) {
-    const startVec = new THREE.Vector3(...start);
-    const endVec = new THREE.Vector3(...end);
-    const dir = new THREE.Vector3().subVectors(endVec, startVec);
-    const length = dir.length();
-    if (length < 0.05) return null;
+/* ── Math helpers ──────────────────────────────────────────────────────── */
 
-    const headPos = endVec.clone();
-
-    return (
-        <group>
-            <Line points={[startVec, endVec]} color={color} lineWidth={lineWidth} />
-            <mesh position={headPos}>
-                <sphereGeometry args={[0.1, 16, 16]} />
-                <meshStandardMaterial color={color} />
-            </mesh>
-            {label && (
-                <Text
-                    position={headPos.clone().add(new THREE.Vector3(0.25, 0.2, 0))}
-                    fontSize={0.28}
-                    color={color}
-                    outlineWidth={0.03}
-                    outlineColor="#000000"
-                    fontWeight="bold"
-                >
-                    {label}
-                </Text>
-            )}
-        </group>
-    );
+function applyM(m: number[][], x: number, y: number): [number, number] {
+    return [m[0][0]*x + m[0][1]*y, m[1][0]*x + m[1][1]*y];
 }
 
-// Draggable Test Vector
-// Draggable Test Vector with proper global event handling
-function DraggableVector({
-    position,
-    onDrag,
-    matrix
-}: {
-    position: [number, number],
-    onDrag: (pos: [number, number]) => void,
-    matrix: number[][]
-}) {
-    const meshRef = useRef<THREE.Mesh>(null);
-    const { camera, gl } = useThree();
-    const isDraggingRef = useRef(false);
-    const [isDragging, setIsDragging] = useState(false);
-
-    const transformedVec: [number, number] = [
-        matrix[0][0] * position[0] + matrix[0][1] * position[1],
-        matrix[1][0] * position[0] + matrix[1][1] * position[1]
-    ];
-
-    // Check if on eigenspace
-    const cross = position[0] * transformedVec[1] - position[1] * transformedVec[0];
-    const isOnEigenspace = Math.abs(cross) < 0.15 && (position[0] !== 0 || position[1] !== 0);
-
-    // Global mouse move handler - using raycaster for accurate position
-    const handleGlobalMove = useCallback((e: MouseEvent) => {
-        if (!isDraggingRef.current) return;
-
-        const rect = gl.domElement.getBoundingClientRect();
-        const mouseX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-        const mouseY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-
-        // Use raycaster to find intersection with z=0 plane
-        const raycaster = new THREE.Raycaster();
-        raycaster.setFromCamera(new THREE.Vector2(mouseX, mouseY), camera);
-
-        // Create a plane at z=0
-        const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
-        const intersectPoint = new THREE.Vector3();
-        raycaster.ray.intersectPlane(plane, intersectPoint);
-
-        if (intersectPoint) {
-            const newX = Math.max(-5, Math.min(5, intersectPoint.x));
-            const newY = Math.max(-5, Math.min(5, intersectPoint.y));
-            onDrag([newX, newY]);
-        }
-    }, [camera, gl, onDrag]);
-
-    // Global mouse up handler
-    const handleGlobalUp = useCallback(() => {
-        isDraggingRef.current = false;
-        setIsDragging(false);
-        gl.domElement.style.cursor = 'default';
-    }, [gl]);
-
-    // Add/remove global listeners
-    React.useEffect(() => {
-        if (isDragging) {
-            window.addEventListener('mousemove', handleGlobalMove);
-            window.addEventListener('mouseup', handleGlobalUp);
-        }
-        return () => {
-            window.removeEventListener('mousemove', handleGlobalMove);
-            window.removeEventListener('mouseup', handleGlobalUp);
-        };
-    }, [isDragging, handleGlobalMove, handleGlobalUp]);
-
-    const handlePointerDown = (e: any) => {
-        e.stopPropagation();
-        isDraggingRef.current = true;
-        setIsDragging(true);
-        gl.domElement.style.cursor = 'grabbing';
-    };
-
-    return (
-        <group>
-            {/* Original vector v */}
-            <Line
-                points={[new THREE.Vector3(0, 0, 0), new THREE.Vector3(position[0], position[1], 0)]}
-                color="#a855f7"
-                lineWidth={4}
-            />
-
-            {/* Draggable handle - larger for easier clicking */}
-            <mesh
-                ref={meshRef}
-                position={[position[0], position[1], 0]}
-                onPointerDown={handlePointerDown}
-                onPointerEnter={() => { gl.domElement.style.cursor = 'grab'; }}
-                onPointerLeave={() => { if (!isDraggingRef.current) gl.domElement.style.cursor = 'default'; }}
-            >
-                <sphereGeometry args={[0.25, 32, 32]} />
-                <meshStandardMaterial
-                    color={isDragging ? "#c084fc" : "#a855f7"}
-                    emissive={isDragging ? "#a855f7" : "#8b5cf6"}
-                    emissiveIntensity={isDragging ? 0.5 : 0.2}
-                />
-            </mesh>
-            <Text
-                position={[position[0] + 0.35, position[1] + 0.3, 0]}
-                fontSize={0.22}
-                color="#a855f7"
-                outlineWidth={0.02}
-                outlineColor="#000"
-            >
-                v (drag me!)
-            </Text>
-
-            {/* Transformed vector Av */}
-            <ThickArrow
-                start={[0, 0, 0]}
-                end={[transformedVec[0], transformedVec[1], 0]}
-                color={isOnEigenspace ? "#22c55e" : "#f472b6"}
-                label="Av"
-                lineWidth={3}
-            />
-
-            {/* Eigenspace indicator */}
-            {isOnEigenspace && (
-                <Text position={[0, -2.5, 0]} fontSize={0.22} color="#22c55e" outlineWidth={0.02} outlineColor="#000">
-                    ✓ On Eigenspace! (v and Av are collinear)
-                </Text>
-            )}
-        </group>
-    );
-}
-
-// Standard basis and transformed basis visualization
-function BasisVisualization({ matrix, showBasis }: { matrix: number[][], showBasis: boolean }) {
-    if (!showBasis) return null;
-
-    const Te1: [number, number, number] = [matrix[0][0], matrix[1][0], 0];
-    const Te2: [number, number, number] = [matrix[0][1], matrix[1][1], 0];
-
-    return (
-        <group>
-            <Line points={[new THREE.Vector3(0, 0, 0), new THREE.Vector3(1.5, 0, 0)]} color="#94a3b8" lineWidth={3} dashed dashSize={0.1} gapSize={0.05} />
-            <Text position={[1.7, 0, 0]} fontSize={0.25} color="#94a3b8" outlineWidth={0.02} outlineColor="#000">e₁</Text>
-
-            <Line points={[new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1.5, 0)]} color="#94a3b8" lineWidth={3} dashed dashSize={0.1} gapSize={0.05} />
-            <Text position={[0, 1.7, 0]} fontSize={0.25} color="#94a3b8" outlineWidth={0.02} outlineColor="#000">e₂</Text>
-
-            <ThickArrow start={[0, 0, 0]} end={[Te1[0] * 1.5, Te1[1] * 1.5, 0]} color="#22d3ee" label="T(e₁)" lineWidth={5} />
-            <ThickArrow start={[0, 0, 0]} end={[Te2[0] * 1.5, Te2[1] * 1.5, 0]} color="#f472b6" label="T(e₂)" lineWidth={5} />
-        </group>
-    );
-}
-
-// Grid deformation
-function GridDeformation({ matrix, showGrid }: { matrix: number[][], showGrid: boolean }) {
-    if (!showGrid) return null;
-
-    const elements: React.ReactNode[] = [];
-    // Extended grid range for larger/infinite feel
-    const gridRange = [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-    const gridExtent = 12;
-
-    // Original grid (dashed) - finer lines for farther ones
-    for (const x of gridRange) {
-        const isMajor = x % 5 === 0;
-        elements.push(
-            <Line
-                key={`orig-v${x}`}
-                points={[new THREE.Vector3(x, -gridExtent, -0.1), new THREE.Vector3(x, gridExtent, -0.1)]}
-                color={isMajor ? "#64748b" : "#475569"}
-                lineWidth={isMajor ? 1.5 : 0.5}
-                dashed
-                dashSize={0.2}
-                gapSize={0.1}
-            />
-        );
-    }
-    for (const y of gridRange) {
-        const isMajor = y % 5 === 0;
-        elements.push(
-            <Line
-                key={`orig-h${y}`}
-                points={[new THREE.Vector3(-gridExtent, y, -0.1), new THREE.Vector3(gridExtent, y, -0.1)]}
-                color={isMajor ? "#64748b" : "#475569"}
-                lineWidth={isMajor ? 1.5 : 0.5}
-                dashed
-                dashSize={0.2}
-                gapSize={0.1}
-            />
-        );
-    }
-
-    // Transformed grid (solid)
-    for (const x of gridRange) {
-        const points: THREE.Vector3[] = [];
-        for (let y = -gridExtent; y <= gridExtent; y += 0.5) {
-            points.push(new THREE.Vector3(matrix[0][0] * x + matrix[0][1] * y, matrix[1][0] * x + matrix[1][1] * y, 0));
-        }
-        elements.push(<Line key={`trans-v${x}`} points={points} color="#38bdf8" lineWidth={1.5} />);
-    }
-    for (const y of gridRange) {
-        const points: THREE.Vector3[] = [];
-        for (let x = -gridExtent; x <= gridExtent; x += 0.5) {
-            points.push(new THREE.Vector3(matrix[0][0] * x + matrix[0][1] * y, matrix[1][0] * x + matrix[1][1] * y, 0));
-        }
-        elements.push(<Line key={`trans-h${y}`} points={points} color="#f472b6" lineWidth={1.5} />);
-    }
-
-    return <group>{elements}</group>;
-}
-
-// Iteration path
-function IterationPath({ matrix, startVec, iterations, show }: { matrix: number[][], startVec: [number, number], iterations: number, show: boolean }) {
-    const points = useMemo(() => {
-        if (!show) return [];
-        const pts: THREE.Vector3[] = [];
-        let v = [...startVec];
-        pts.push(new THREE.Vector3(v[0], v[1], 0));
-
-        for (let i = 0; i < iterations; i++) {
-            v = [matrix[0][0] * v[0] + matrix[0][1] * v[1], matrix[1][0] * v[0] + matrix[1][1] * v[1]];
-            const mag = Math.sqrt(v[0] * v[0] + v[1] * v[1]);
-            if (mag > 5 || mag < 0.01) break;
-            pts.push(new THREE.Vector3(v[0], v[1], 0));
-        }
-        return pts;
-    }, [matrix, startVec, iterations, show]);
-
-    if (!show || points.length < 2) return null;
-    return (
-        <group>
-            <Line points={points} color="#fbbf24" lineWidth={3} />
-            {points.map((pt, i) => (
-                <mesh key={i} position={pt}>
-                    <sphereGeometry args={[0.08, 16, 16]} />
-                    <meshStandardMaterial color={i === 0 ? "#f59e0b" : "#fcd34d"} />
-                </mesh>
-            ))}
-        </group>
-    );
-}
-
-// Spiral path
-function SpiralPath({ matrix, isComplex }: { matrix: number[][], isComplex: boolean }) {
-    const points = useMemo(() => {
-        if (!isComplex) return [];
-        const pts: THREE.Vector3[] = [];
-        let v = [1, 0];
-        for (let i = 0; i < 60; i++) {
-            pts.push(new THREE.Vector3(v[0], v[1], 0));
-            v = [matrix[0][0] * v[0] + matrix[0][1] * v[1], matrix[1][0] * v[0] + matrix[1][1] * v[1]];
-            const mag = Math.sqrt(v[0] * v[0] + v[1] * v[1]);
-            if (mag > 4 || mag < 0.01) break;
-        }
-        return pts;
-    }, [matrix, isComplex]);
-    if (!isComplex || points.length < 2) return null;
-    return <Line points={points} color="#c084fc" lineWidth={3} />;
-}
-
-// Eigenvector visualization
-function EigenvectorViz({ eigenvectors, eigenvalues, isComplex }: { eigenvectors: [[number, number], [number, number]] | null, eigenvalues: [number, number], isComplex: boolean }) {
-    if (isComplex || !eigenvectors) return null;
-    return (
-        <group>
-            <Line points={[new THREE.Vector3(-eigenvectors[0][0] * 4, -eigenvectors[0][1] * 4, 0), new THREE.Vector3(eigenvectors[0][0] * 4, eigenvectors[0][1] * 4, 0)]} color="#3b82f6" lineWidth={3} />
-            <ThickArrow start={[0, 0, 0]} end={[eigenvectors[0][0] * 2, eigenvectors[0][1] * 2, 0]} color="#3b82f6" label={`v₁ (λ=${eigenvalues[0].toFixed(1)})`} lineWidth={4} />
-            <Line points={[new THREE.Vector3(-eigenvectors[1][0] * 4, -eigenvectors[1][1] * 4, 0), new THREE.Vector3(eigenvectors[1][0] * 4, eigenvectors[1][1] * 4, 0)]} color="#ef4444" lineWidth={3} />
-            <ThickArrow start={[0, 0, 0]} end={[eigenvectors[1][0] * 2, eigenvectors[1][1] * 2, 0]} color="#ef4444" label={`v₂ (λ=${eigenvalues[1].toFixed(1)})`} lineWidth={4} />
-        </group>
-    );
-}
-
-// Compute eigenvalues
-function computeEigen(m: number[][]): { eigenvalues: [number, number], eigenvectors: [[number, number], [number, number]] | null, isComplex: boolean } {
+function computeEigen(m: number[][]) {
     const a = m[0][0], b = m[0][1], c = m[1][0], d = m[1][1];
-    const trace = a + d, det = a * d - b * c;
-    const discriminant = trace * trace - 4 * det;
-
-    if (discriminant < 0) {
-        return { eigenvalues: [trace / 2, Math.sqrt(-discriminant) / 2], eigenvectors: null, isComplex: true };
+    const trace = a + d, det = a*d - b*c;
+    const disc = trace*trace - 4*det;
+    if (disc < 0) {
+        return { eigenvalues: [trace/2, Math.sqrt(-disc)/2] as [number,number], eigenvectors: null, isComplex: true };
     }
-
-    const sqrtDisc = Math.sqrt(discriminant);
-    const lambda1 = (trace + sqrtDisc) / 2, lambda2 = (trace - sqrtDisc) / 2;
-
-    const findEigenvector = (lambda: number): [number, number] => {
-        const epsilon = 0.0001;
-        let v: [number, number] = Math.abs(b) > epsilon ? [b, lambda - a] : Math.abs(c) > epsilon ? [lambda - d, c] : Math.abs(a - lambda) < epsilon ? [1, 0] : [0, 1];
-        const len = Math.sqrt(v[0] * v[0] + v[1] * v[1]);
-        return len > epsilon ? [v[0] / len, v[1] / len] : v;
+    const sq = Math.sqrt(disc);
+    const λ1 = (trace + sq) / 2, λ2 = (trace - sq) / 2;
+    const findEv = (λ: number): [number, number] => {
+        const eps = 1e-6;
+        const v: [number,number] = Math.abs(b) > eps ? [b, λ-a] : Math.abs(c) > eps ? [λ-d, c] : [1, 0];
+        const len = Math.hypot(v[0], v[1]);
+        return len > eps ? [v[0]/len, v[1]/len] : [1, 0];
     };
-
-    return { eigenvalues: [lambda1, lambda2], eigenvectors: [findEigenvector(lambda1), findEigenvector(lambda2)], isComplex: false };
+    return { eigenvalues: [λ1, λ2] as [number,number], eigenvectors: [findEv(λ1), findEv(λ2)] as [[number,number],[number,number]], isComplex: false };
 }
 
-// Main visualization canvas content
-function VisualizationContent({ matrix, showBasis, showGrid, showEigenvectors, showIteration, iterations, testVec, setTestVec }: {
-    matrix: number[][], showBasis: boolean, showGrid: boolean, showEigenvectors: boolean, showIteration: boolean, iterations: number, testVec: [number, number], setTestVec: (v: [number, number]) => void
+/* ── SVG helpers ───────────────────────────────────────────────────────── */
+
+const W = 560, H = 460, S = 54, CX = W/2, CY = H/2;
+
+function sv(x: number, y: number): [number, number] {
+    return [CX + x*S, CY - y*S];
+}
+
+function Arrow({ x1, y1, x2, y2, color, label, width = 2.5, dashed = false }: {
+    x1: number; y1: number; x2: number; y2: number;
+    color: string; label?: string; dashed?: boolean; width?: number;
 }) {
-    const { eigenvalues, eigenvectors, isComplex } = useMemo(() => computeEigen(matrix), [matrix]);
-
+    const dx = x2-x1, dy = y2-y1, len = Math.hypot(dx, dy);
+    if (len < 4) return null;
+    const ang = Math.atan2(dy, dx), hs = 11, ha = 0.38;
+    const ux = dx/len, uy = dy/len;
     return (
-        <>
-            <color attach="background" args={['#0f172a']} />
-            <OrbitControls makeDefault enableRotate={false} />
-            <ambientLight intensity={0.8} />
-            <pointLight position={[5, 5, 5]} intensity={0.5} />
-
-            <Grid args={[10, 10]} cellSize={1} cellThickness={0.5} cellColor="#1e293b" sectionSize={1} sectionThickness={0.5} sectionColor="#334155" fadeDistance={15} />
-
-            <GridDeformation matrix={matrix} showGrid={showGrid} />
-            <BasisVisualization matrix={matrix} showBasis={showBasis} />
-            {showEigenvectors && <EigenvectorViz eigenvectors={eigenvectors} eigenvalues={eigenvalues} isComplex={isComplex} />}
-            <SpiralPath matrix={matrix} isComplex={isComplex} />
-            <IterationPath matrix={matrix} startVec={testVec} iterations={iterations} show={showIteration} />
-
-            {/* Draggable test vector */}
-            <DraggableVector position={testVec} onDrag={setTestVec} matrix={matrix} />
-
-            {/* Legend */}
-            <Text position={[-2.8, 2.7, 0]} fontSize={0.18} color="#94a3b8" anchorX="left">Gray dashed: Original basis (e₁, e₂)</Text>
-            <Text position={[-2.8, 2.4, 0]} fontSize={0.18} color="#22d3ee" anchorX="left">Cyan: T(e₁) - first column</Text>
-            <Text position={[-2.8, 2.1, 0]} fontSize={0.18} color="#f472b6" anchorX="left">Pink: T(e₂) - second column</Text>
-            <Text position={[-2.8, 1.8, 0]} fontSize={0.18} color="#a855f7" anchorX="left">Purple: Test vector v (draggable)</Text>
-        </>
+        <g>
+            <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={color}
+                strokeWidth={dashed ? 1.5 : width}
+                strokeDasharray={dashed ? "6,4" : undefined} strokeLinecap="round" />
+            {!dashed && (
+                <polygon fill={color}
+                    points={`${x2},${y2} ${x2-hs*Math.cos(ang-ha)},${y2-hs*Math.sin(ang-ha)} ${x2-hs*Math.cos(ang+ha)},${y2-hs*Math.sin(ang+ha)}`} />
+            )}
+            {label && (
+                <text x={x2+ux*18} y={y2-uy*10} fill={color} fontSize={12} fontWeight="700" textAnchor="middle" dominantBaseline="middle">{label}</text>
+            )}
+        </g>
     );
 }
+
+/* ── Presets ───────────────────────────────────────────────────────────── */
+
+const PRESETS = [
+    { label: 'Symmetric',    m: [[2, 1], [1, 2]], note: 'λ=3, 1 · 45° axes' },
+    { label: 'Scale X',      m: [[2, 0], [0, 1]], note: 'λ=2, 1 · axis-aligned' },
+    { label: 'Scale Y',      m: [[1, 0], [0, 3]], note: 'λ=1, 3 · axis-aligned' },
+    { label: 'Shear',        m: [[1, 1], [0, 1]], note: 'λ=1,1 · 1 eigenvector' },
+    { label: 'Saddle',       m: [[2, 0], [0, 0.5]], note: 'λ=2, 0.5 · expand/shrink' },
+    { label: 'Rotation 90°', m: [[0,-1], [1, 0]], note: 'no real eigenvalues' },
+];
+
+const GRID = [-4,-3,-2,-1,0,1,2,3,4];
+
+/* ── Main component ────────────────────────────────────────────────────── */
 
 export default function EigenvalueLab() {
-    const [matrix, setMatrix] = useState<number[][]>([[2, 1], [1, 2]]);
-    const [showBasis, setShowBasis] = useState(true);
-    const [showGrid, setShowGrid] = useState(false);
-    const [showIteration, setShowIteration] = useState(false);
-    const [showEigenvectors, setShowEigenvectors] = useState(true);
-    const [iterations, setIterations] = useState(15);
-    const [testVec, setTestVec] = useState<[number, number]>([1.5, 0.5]);
-    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [matrix, setMatrix] = useState([[2, 1], [1, 2]]);
+    const [vecAngle, setVecAngle] = useState(60);
+    const VEC_LEN = 1.8;
 
-    const presets = [
-        { name: 'Symmetric', m: [[2, 1], [1, 2]] },
-        { name: 'Scale X', m: [[2, 0], [0, 1]] },
-        { name: 'Scale Y', m: [[1, 0], [0, 2]] },
-        { name: 'Shear', m: [[1, 1], [0, 1]] },
-        { name: 'Rotation 45°', m: [[0.7, -0.7], [0.7, 0.7]] },
-        { name: 'Rotation 90°', m: [[0, -1], [1, 0]] },
-        { name: 'Contract', m: [[0.5, 0], [0, 0.5]] },
-        { name: 'Reflection', m: [[1, 0], [0, -1]] },
-    ];
+    const { eigenvalues, eigenvectors, isComplex } = useMemo(() => computeEigen(matrix), [matrix]);
 
-    const { eigenvalues, isComplex } = useMemo(() => computeEigen(matrix), [matrix]);
+    const ang = vecAngle * Math.PI / 180;
+    const vx = VEC_LEN * Math.cos(ang), vy = VEC_LEN * Math.sin(ang);
+    const [Avx, Avy] = applyM(matrix, vx, vy);
+    const AvLen = Math.hypot(Avx, Avy);
+    const cross = vx*Avy - vy*Avx;
+    const isOnEigenspace = AvLen > 0.05 && Math.abs(cross) < 0.28 * AvLen;
+    const effλ = isOnEigenspace ? (Avx*vx + Avy*vy) / (vx*vx + vy*vy) : null;
 
-    // Fullscreen modal
-    if (isFullscreen) {
-        return (
-            <div className="fixed inset-0 z-50 bg-slate-900 flex flex-col">
-                {/* Header with controls */}
-                <div className="flex items-center justify-between p-3 bg-slate-800 border-b border-slate-700">
-                    <div className="flex items-center gap-4">
-                        <h2 className="text-lg font-bold text-white">Eigenvalue Lab</h2>
+    const [ox, oy] = sv(0, 0);
+    const [vsx, vsy] = sv(vx, vy);
+    const [Avsx, Avsy] = sv(Avx, Avy);
 
-                        {/* Matrix Input */}
-                        <div className="flex items-center gap-2">
-                            <span className="text-white text-sm">Matrix:</span>
-                            <div className="grid grid-cols-2 gap-1">
-                                {[0, 1].map(row => (
-                                    [0, 1].map(col => (
-                                        <input
-                                            key={`fs-m-${row}-${col}`}
-                                            type="number"
-                                            value={matrix[row][col]}
-                                            onChange={e => {
-                                                const newM = matrix.map(r => [...r]);
-                                                newM[row][col] = parseFloat(e.target.value) || 0;
-                                                setMatrix(newM);
-                                            }}
-                                            className="w-14 border border-slate-600 bg-slate-700 text-white rounded px-2 py-1 text-center text-sm font-mono"
-                                            step={0.5}
-                                        />
-                                    ))
-                                ))}
-                            </div>
-                        </div>
+    const vColor  = isOnEigenspace ? '#16a34a' : '#7c3aed';
+    const AvColor = isOnEigenspace ? '#16a34a' : '#db2777';
 
-                        {/* Presets */}
-                        <div className="flex gap-1">
-                            {presets.map(p => (
-                                <button key={p.name} onClick={() => setMatrix(p.m)} className="px-2 py-1 text-xs bg-violet-600 text-white rounded hover:bg-violet-500">
-                                    {p.name}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                        {/* Eigenvalues display */}
-                        <div className="text-sm">
-                            {isComplex ? (
-                                <span className="text-purple-400 font-mono">λ = {eigenvalues[0].toFixed(2)} ± {eigenvalues[1].toFixed(2)}i</span>
-                            ) : (
-                                <span className="font-mono">
-                                    <span className="text-blue-400">λ₁={eigenvalues[0].toFixed(2)}</span>
-                                    <span className="text-slate-500 mx-1">,</span>
-                                    <span className="text-red-400">λ₂={eigenvalues[1].toFixed(2)}</span>
-                                </span>
-                            )}
-                        </div>
-                        <button onClick={() => setIsFullscreen(false)} className="p-2 bg-red-600 text-white rounded hover:bg-red-500">
-                            <X size={20} />
-                        </button>
-                    </div>
-                </div>
-
-                {/* Canvas */}
-                <div className="flex-1">
-                    <Canvas camera={{ position: [0, 0, 8], fov: 50 }}>
-                        <VisualizationContent
-                            matrix={matrix}
-                            showBasis={showBasis}
-                            showGrid={showGrid}
-                            showEigenvectors={showEigenvectors}
-                            showIteration={showIteration}
-                            iterations={iterations}
-                            testVec={testVec}
-                            setTestVec={setTestVec}
-                        />
-                    </Canvas>
-                </div>
-
-                {/* Footer controls */}
-                <div className="p-3 bg-slate-800 border-t border-slate-700 flex items-center justify-between">
-                    {/* Left: Checkboxes */}
-                    <div className="flex items-center gap-4">
-                        <label className="flex items-center gap-2 text-white text-sm">
-                            <input type="checkbox" checked={showBasis} onChange={e => setShowBasis(e.target.checked)} className="w-4 h-4" />
-                            Basis
-                        </label>
-                        <label className="flex items-center gap-2 text-white text-sm">
-                            <input type="checkbox" checked={showEigenvectors} onChange={e => setShowEigenvectors(e.target.checked)} className="w-4 h-4" />
-                            Eigenvectors
-                        </label>
-                        <label className="flex items-center gap-2 text-white text-sm">
-                            <input type="checkbox" checked={showGrid} onChange={e => setShowGrid(e.target.checked)} className="w-4 h-4" />
-                            Grid
-                        </label>
-                        <label className="flex items-center gap-2 text-white text-sm">
-                            <input type="checkbox" checked={showIteration} onChange={e => setShowIteration(e.target.checked)} className="w-4 h-4" />
-                            Iteration
-                        </label>
-                    </div>
-
-                    {/* Center: Test Vector Sliders */}
-                    <div className="flex items-center gap-4">
-                        <span className="text-violet-400 text-sm font-semibold">v:</span>
-                        <div className="flex items-center gap-2">
-                            <span className="text-white text-xs">x:</span>
-                            <input type="range" min={-5} max={5} step={0.1} value={testVec[0]} onChange={e => setTestVec([parseFloat(e.target.value), testVec[1]])} className="w-24" />
-                            <span className="text-white text-xs font-mono w-8">{testVec[0].toFixed(1)}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-white text-xs">y:</span>
-                            <input type="range" min={-5} max={5} step={0.1} value={testVec[1]} onChange={e => setTestVec([testVec[0], parseFloat(e.target.value)])} className="w-24" />
-                            <span className="text-white text-xs font-mono w-8">{testVec[1].toFixed(1)}</span>
-                        </div>
-                    </div>
-
-                    {/* Right: Vector values */}
-                    <div className="text-sm">
-                        <span className="text-violet-400 font-mono">v=({testVec[0].toFixed(1)}, {testVec[1].toFixed(1)})</span>
-                        <span className="text-slate-500 mx-2">→</span>
-                        <span className="text-pink-400 font-mono">
-                            Av=({(matrix[0][0] * testVec[0] + matrix[0][1] * testVec[1]).toFixed(1)}, {(matrix[1][0] * testVec[0] + matrix[1][1] * testVec[1]).toFixed(1)})
-                        </span>
-                    </div>
-                </div>
-            </div>
-        );
-    }
+    const evLine = (ev: [number, number]) => {
+        const [ex, ey] = ev;
+        const [x1,y1] = sv(-ex*5, -ey*5);
+        const [x2,y2] = sv(ex*5, ey*5);
+        return { x1, y1, x2, y2 };
+    };
 
     return (
-        <div className="p-6 bg-slate-50 rounded-xl border border-slate-200 shadow-sm">
-            <div className="flex flex-col lg:flex-row gap-6">
-                {/* Controls */}
-                <div className="w-full lg:w-1/3 space-y-3">
-                    <div>
-                        <h3 className="text-xl font-bold text-slate-800">Eigenvalue Lab</h3>
-                        <p className="text-sm text-slate-600 mt-1">
-                            Drag the purple v vector in the visualization!
+        <div className="flex flex-col lg:flex-row gap-6 p-6 bg-slate-50 rounded-xl border border-slate-200">
+
+            {/* ── Left panel ── */}
+            <div className="w-full lg:w-64 shrink-0 space-y-4">
+                <div>
+                    <h3 className="text-lg font-bold text-slate-800">Eigenvalue Lab</h3>
+                    <p className="text-xs text-slate-500 mt-1">Rotate the test vector to discover eigendirections.</p>
+                </div>
+
+                {/* Matrix inputs */}
+                <div className="bg-white rounded-xl border border-slate-200 p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Matrix [A]</p>
+                    <div className="grid grid-cols-2 gap-2">
+                        {[0,1].map(r => [0,1].map(c => (
+                            <input key={`${r}${c}`} type="number"
+                                value={+matrix[r][c].toFixed(3)}
+                                onChange={e => {
+                                    const m = matrix.map(row => [...row]);
+                                    m[r][c] = parseFloat(e.target.value) || 0;
+                                    setMatrix(m);
+                                }}
+                                className="border border-slate-200 rounded-lg px-2 py-1.5 text-center text-sm font-mono focus:outline-none focus:border-indigo-400"
+                                step={0.5}
+                            />
+                        )))}
+                    </div>
+                </div>
+
+                {/* Presets */}
+                <div className="bg-white rounded-xl border border-slate-200 p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Presets</p>
+                    <div className="flex flex-col gap-1">
+                        {PRESETS.map(p => (
+                            <button key={p.label} onClick={() => setMatrix(p.m)}
+                                className="text-left px-3 py-1.5 rounded-lg text-xs text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 transition-colors">
+                                <span className="font-semibold text-sm block">{p.label}</span>
+                                <span className="text-slate-400">{p.note}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Eigenvalues */}
+                <div className={`rounded-xl border p-4 ${isComplex ? 'bg-purple-50 border-purple-200' : 'bg-indigo-50 border-indigo-100'}`}>
+                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-2">Eigenvalues</p>
+                    {isComplex ? (
+                        <>
+                            <p className="font-mono text-sm text-purple-700 font-bold">λ = {eigenvalues[0].toFixed(2)} ± {eigenvalues[1].toFixed(2)}i</p>
+                            <p className="text-xs text-purple-600 mt-1">Complex — no real eigenvectors. The matrix rotates all vectors.</p>
+                        </>
+                    ) : (
+                        <div className="space-y-1.5">
+                            <div className="bg-blue-100 rounded-lg px-3 py-1.5 flex justify-between items-center">
+                                <span className="text-sm font-mono font-bold text-blue-700">λ₁ = {eigenvalues[0].toFixed(3)}</span>
+                                {eigenvectors && <span className="text-[10px] text-blue-500">({eigenvectors[0][0].toFixed(2)}, {eigenvectors[0][1].toFixed(2)})</span>}
+                            </div>
+                            <div className="bg-red-100 rounded-lg px-3 py-1.5 flex justify-between items-center">
+                                <span className="text-sm font-mono font-bold text-red-700">λ₂ = {eigenvalues[1].toFixed(3)}</span>
+                                {eigenvectors && <span className="text-[10px] text-red-500">({eigenvectors[1][0].toFixed(2)}, {eigenvectors[1][1].toFixed(2)})</span>}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Angle slider */}
+                <div className="bg-white rounded-xl border border-slate-200 p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Test Vector Angle</p>
+                    <input type="range" min={0} max={359} step={1}
+                        value={vecAngle} onChange={e => setVecAngle(parseInt(e.target.value))}
+                        className="w-full accent-violet-600" />
+                    <p className="text-center text-sm font-mono mt-2 font-bold" style={{ color: vColor }}>
+                        {vecAngle}°{isOnEigenspace ? ` ← Eigenvector! (λ≈${effλ?.toFixed(2)})` : ''}
+                    </p>
+                </div>
+
+                {/* Eigenspace indicator */}
+                {isOnEigenspace ? (
+                    <div className="bg-green-50 border border-green-300 rounded-xl p-3">
+                        <p className="text-sm font-bold text-green-700">✓ Found an eigenvector!</p>
+                        <p className="text-xs text-green-600 mt-1">
+                            A·v ≈ {effλ?.toFixed(2)}·v<br/>
+                            <span className="opacity-70">v and Av point the same direction — only scale changes.</span>
                         </p>
                     </div>
-
-                    {/* Matrix Input */}
-                    <div className="p-3 bg-white rounded-lg border border-slate-200">
-                        <h4 className="font-semibold text-slate-700 text-sm border-b pb-2 mb-2">Matrix [T]</h4>
-                        <div className="grid grid-cols-2 gap-2">
-                            {[0, 1].map(row => (
-                                [0, 1].map(col => (
-                                    <input
-                                        key={`m-${row}-${col}`}
-                                        type="number"
-                                        value={matrix[row][col]}
-                                        onChange={e => {
-                                            const newM = matrix.map(r => [...r]);
-                                            newM[row][col] = parseFloat(e.target.value) || 0;
-                                            setMatrix(newM);
-                                        }}
-                                        className="w-full border-2 border-slate-300 rounded px-2 py-2 text-center text-lg font-mono font-bold"
-                                        step={0.5}
-                                    />
-                                ))
-                            ))}
-                        </div>
+                ) : (
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-500">
+                        <strong className="text-slate-700 block mb-1">How to use:</strong>
+                        Drag the slider. When <span style={{color:'#7c3aed'}} className="font-bold">v</span> and <span style={{color:'#db2777'}} className="font-bold">Av</span> align, you've found an eigendirection.
                     </div>
+                )}
+            </div>
 
-                    {/* Presets */}
-                    <div className="p-3 bg-white rounded-lg border border-slate-200">
-                        <h4 className="font-semibold text-slate-700 text-sm border-b pb-2 mb-2">Presets</h4>
-                        <div className="grid grid-cols-2 gap-1">
-                            {presets.map(p => (
-                                <button key={p.name} onClick={() => setMatrix(p.m)} className="px-2 py-1.5 text-xs font-medium bg-violet-100 text-violet-700 rounded hover:bg-violet-200">
-                                    {p.name}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
+            {/* ── SVG canvas ── */}
+            <div className="flex-1 min-h-[460px] bg-white rounded-xl border border-slate-200 overflow-hidden relative">
+                <svg width="100%" height="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
 
-                    {/* View Controls */}
-                    <div className="p-3 bg-white rounded-lg border border-slate-200">
-                        <h4 className="font-semibold text-slate-700 text-sm border-b pb-2 mb-2">Show</h4>
-                        <div className="space-y-2 text-sm">
-                            <label className="flex items-center gap-2"><input type="checkbox" checked={showBasis} onChange={e => setShowBasis(e.target.checked)} className="w-4 h-4" /><span className="font-medium">Basis Vectors</span></label>
-                            <label className="flex items-center gap-2"><input type="checkbox" checked={showEigenvectors} onChange={e => setShowEigenvectors(e.target.checked)} className="w-4 h-4" /><span className="font-medium">Eigenvectors</span></label>
-                            <label className="flex items-center gap-2"><input type="checkbox" checked={showGrid} onChange={e => setShowGrid(e.target.checked)} className="w-4 h-4" /><span className="font-medium">Grid Deformation</span></label>
-                            <label className="flex items-center gap-2"><input type="checkbox" checked={showIteration} onChange={e => setShowIteration(e.target.checked)} className="w-4 h-4" /><span className="font-medium">Iteration Path</span></label>
-                        </div>
-                    </div>
+                    {/* Ghost grid */}
+                    <g opacity="0.18">
+                        {GRID.map(y => { const [x1,y1]=sv(-4.5,y),[x2,y2]=sv(4.5,y); return <line key={`gh${y}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke={y===0?'#475569':'#cbd5e1'} strokeWidth={y===0?1.5:0.7}/> })}
+                        {GRID.map(x => { const [x1,y1]=sv(x,-4.5),[x2,y2]=sv(x,4.5); return <line key={`gv${x}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke={x===0?'#475569':'#cbd5e1'} strokeWidth={x===0?1.5:0.7}/> })}
+                    </g>
 
-                    {/* Test Vector Display with Sliders */}
-                    <div className="p-3 bg-violet-50 rounded-lg border border-violet-200">
-                        <h4 className="font-semibold text-violet-800 text-sm mb-2">Test Vector (drag in canvas or use sliders)</h4>
-                        <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs text-violet-600 w-4">x:</span>
-                                <input
-                                    type="range"
-                                    min={-5}
-                                    max={5}
-                                    step={0.1}
-                                    value={testVec[0]}
-                                    onChange={e => setTestVec([parseFloat(e.target.value), testVec[1]])}
-                                    className="flex-1"
-                                />
-                                <span className="text-xs font-mono w-10 text-right">{testVec[0].toFixed(1)}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs text-violet-600 w-4">y:</span>
-                                <input
-                                    type="range"
-                                    min={-5}
-                                    max={5}
-                                    step={0.1}
-                                    value={testVec[1]}
-                                    onChange={e => setTestVec([testVec[0], parseFloat(e.target.value)])}
-                                    className="flex-1"
-                                />
-                                <span className="text-xs font-mono w-10 text-right">{testVec[1].toFixed(1)}</span>
-                            </div>
-                        </div>
-                        <div className="mt-2 pt-2 border-t border-violet-200">
-                            <p className="text-sm text-violet-700">
-                                <span className="font-mono font-bold">v = ({testVec[0].toFixed(2)}, {testVec[1].toFixed(2)})</span>
-                            </p>
-                            <p className="text-sm text-pink-600 mt-1">
-                                <span className="font-mono font-bold">Av = ({(matrix[0][0] * testVec[0] + matrix[0][1] * testVec[1]).toFixed(2)}, {(matrix[1][0] * testVec[0] + matrix[1][1] * testVec[1]).toFixed(2)})</span>
-                            </p>
-                        </div>
-                    </div>
+                    {/* Eigenvector lines (full extent) */}
+                    {!isComplex && eigenvectors && (() => {
+                        const l1 = evLine(eigenvectors[0]);
+                        const l2 = evLine(eigenvectors[1]);
+                        return <>
+                            <line {...l1} stroke="#3b82f6" strokeWidth={1.5} strokeDasharray="9,5" opacity={0.6} />
+                            <line {...l2} stroke="#ef4444" strokeWidth={1.5} strokeDasharray="9,5" opacity={0.6} />
+                        </>;
+                    })()}
 
-                    {/* Eigenvalue Results */}
-                    <div className="p-3 bg-gradient-to-br from-violet-50 to-indigo-50 rounded-lg border border-violet-200">
-                        <h4 className="font-bold text-violet-900 text-sm mb-2">Eigenvalues</h4>
-                        {isComplex ? (
-                            <div className="bg-purple-100 p-2 rounded text-sm">
-                                <p className="font-mono text-purple-800 font-bold">λ = {eigenvalues[0].toFixed(2)} ± {eigenvalues[1].toFixed(2)}i</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-1">
-                                <div className="bg-blue-100 p-2 rounded flex justify-between items-center">
-                                    <span className="font-mono text-blue-800 font-bold">λ₁ = {eigenvalues[0].toFixed(2)}</span>
-                                </div>
-                                <div className="bg-red-100 p-2 rounded flex justify-between items-center">
-                                    <span className="font-mono text-red-800 font-bold">λ₂ = {eigenvalues[1].toFixed(2)}</span>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
+                    {/* Eigenvector arrows */}
+                    {!isComplex && eigenvectors && (() => {
+                        const [e1x,e1y]=sv(eigenvectors[0][0]*1.6, eigenvectors[0][1]*1.6);
+                        const [e2x,e2y]=sv(eigenvectors[1][0]*1.6, eigenvectors[1][1]*1.6);
+                        return <>
+                            <Arrow x1={ox} y1={oy} x2={e1x} y2={e1y} color="#3b82f6" label={`v₁ (λ=${eigenvalues[0].toFixed(1)})`} width={2.5} />
+                            <Arrow x1={ox} y1={oy} x2={e2x} y2={e2y} color="#ef4444" label={`v₂ (λ=${eigenvalues[1].toFixed(1)})`} width={2.5} />
+                        </>;
+                    })()}
 
-                {/* Visualization */}
-                <div className="flex-1 flex flex-col gap-4">
-                    <div className="h-[450px] bg-slate-900 rounded-lg overflow-hidden relative">
-                        {/* Fullscreen button */}
-                        <button
-                            onClick={() => setIsFullscreen(true)}
-                            className="absolute top-3 right-3 z-10 p-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
-                            title="Fullscreen"
-                        >
-                            <Maximize2 size={18} />
-                        </button>
+                    {/* Image vector Av */}
+                    {AvLen > 0.05 && <Arrow x1={ox} y1={oy} x2={Avsx} y2={Avsy} color={AvColor} label="Av" width={3.5} />}
 
-                        <Canvas camera={{ position: [0, 0, 6], fov: 50 }}>
-                            <VisualizationContent
-                                matrix={matrix}
-                                showBasis={showBasis}
-                                showGrid={showGrid}
-                                showEigenvectors={showEigenvectors}
-                                showIteration={showIteration}
-                                iterations={iterations}
-                                testVec={testVec}
-                                setTestVec={setTestVec}
-                            />
-                        </Canvas>
-                    </div>
+                    {/* Test vector v */}
+                    <Arrow x1={ox} y1={oy} x2={vsx} y2={vsy} color={vColor} label="v" width={3.5} />
 
-                    {/* Info panel */}
-                    <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-100 text-sm">
-                        <h4 className="font-bold text-indigo-900 mb-2">How to use</h4>
-                        <ul className="text-indigo-800 space-y-1 text-xs">
-                            <li>• <span className="font-semibold text-violet-600">Drag the purple sphere</span> to move vector v around</li>
-                            <li>• When v and Av are <span className="text-green-600 font-semibold">collinear</span>, v is on an eigenspace!</li>
-                            <li>• Click <Maximize2 size={12} className="inline" /> to expand to fullscreen</li>
-                        </ul>
-                    </div>
-                </div>
+                    {/* Eigenspace highlight ring */}
+                    {isOnEigenspace && <circle cx={ox} cy={oy} r={22} fill="none" stroke="#16a34a" strokeWidth={2.5} strokeDasharray="5,3" opacity={0.7} />}
+
+                    {/* Complex notice */}
+                    {isComplex && (
+                        <text x={CX} y={CY} textAnchor="middle" fill="#7c3aed" fontSize={14} fontWeight="700">
+                            Complex eigenvalues — no real eigendirections.
+                        </text>
+                    )}
+
+                    {/* Origin dot */}
+                    <circle cx={ox} cy={oy} r={4.5} fill="#1e293b" />
+
+                    {/* Instruction */}
+                    <text x={W-10} y={15} textAnchor="end" fill="#94a3b8" fontSize={11}>← adjust angle slider to rotate v</text>
+
+                    {/* Legend */}
+                    <g transform={`translate(8, ${H-76})`}>
+                        <rect width={265} height={70} rx={6} fill="white" fillOpacity={0.94} stroke="#e2e8f0" />
+                        <line x1={10} y1={18} x2={30} y2={18} stroke="#3b82f6" strokeWidth={2} strokeDasharray="7,4" />
+                        <text x={36} y={22} fill="#3b82f6" fontSize={11} fontWeight="600">v₁ — eigendirection (λ₁)</text>
+                        <line x1={10} y1={38} x2={30} y2={38} stroke="#ef4444" strokeWidth={2} strokeDasharray="7,4" />
+                        <text x={36} y={42} fill="#ef4444" fontSize={11} fontWeight="600">v₂ — eigendirection (λ₂)</text>
+                        <line x1={10} y1={57} x2={30} y2={57} stroke="#7c3aed" strokeWidth={3} />
+                        <text x={36} y={61} fill="#7c3aed" fontSize={11} fontWeight="600">v — test vector</text>
+                        <line x1={148} y1={57} x2={168} y2={57} stroke="#db2777" strokeWidth={3} />
+                        <text x={174} y={61} fill="#db2777" fontSize={11} fontWeight="600">Av — image</text>
+                    </g>
+                </svg>
             </div>
         </div>
     );

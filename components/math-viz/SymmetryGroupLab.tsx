@@ -1,241 +1,179 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Text, Line, Html } from '@react-three/drei';
-import * as THREE from 'three';
-import { RotateCcw, Box, Triangle, Hexagon } from 'lucide-react';
+import React, { useState } from 'react';
 
-// Geometric shapes data
-const SHAPES = {
-    triangle: {
-        sides: 3,
-        name: "Equilateral Triangle (D₃)",
-        vertices: [
-            [0, 2],         // Top
-            [1.732, -1],    // Bottom Right
-            [-1.732, -1]    // Bottom Left
-        ] as [number, number][],
-        colors: ["#ef4444", "#22c55e", "#3b82f6"] // R, G, B
-    },
-    square: {
-        sides: 4,
-        name: "Square (D₄)",
-        vertices: [
-            [1.5, 1.5],   // TR
-            [1.5, -1.5],  // BR
-            [-1.5, -1.5], // BL
-            [-1.5, 1.5]   // TL
-        ] as [number, number][],
-        colors: ["#ef4444", "#22c55e", "#3b82f6", "#eab308"] // R, G, B, Y
-    }
-};
+/* ────────────────────────────────────────────────────────────────────────────
+   D₃ Symmetry Group Lab — pure SVG, no Three.js
+   Shows the 6 elements of the dihedral group D₃ acting on an equilateral
+   triangle with coloured vertices.
+   ──────────────────────────────────────────────────────────────────────────── */
 
-type ShapeType = keyof typeof SHAPES;
+type Perm = [number, number, number];
 
-function Polygon({ shape, rotation, scaleV, animating }: {
-    shape: ShapeType,
-    rotation: number,
-    scaleV: [number, number],
-    animating: boolean
-}) {
-    const meshRef = useRef<THREE.Group>(null);
-    const data = SHAPES[shape];
+/* Fixed slot positions (top, right, left) in SVG */
+const SLOT_POS: [number, number][] = [
+    [150, 32],   // slot 0 — top
+    [268, 212],  // slot 1 — bottom-right
+    [32,  212],  // slot 2 — bottom-left
+];
 
-    // Smooth animation
-    useFrame((state, delta) => {
-        if (meshRef.current) {
-            // Lerp rotation
-            meshRef.current.rotation.z = THREE.MathUtils.lerp(meshRef.current.rotation.z, rotation, delta * 5);
-            // Lerp scale
-            meshRef.current.scale.x = THREE.MathUtils.lerp(meshRef.current.scale.x, scaleV[0], delta * 5);
-            meshRef.current.scale.y = THREE.MathUtils.lerp(meshRef.current.scale.y, scaleV[1], delta * 5);
-        }
-    });
+const VERTEX_COLORS = ['#ef4444', '#3b82f6', '#22c55e'];
+const VERTEX_LABELS = ['1', '2', '3'];
 
-    // Draw lines connecting vertices
-    const points = [...data.vertices, data.vertices[0]].map(v => new THREE.Vector3(v[0], v[1], 0));
+/* D₃ operations: perm[slot] = which original vertex is at that slot after op */
+const OPERATIONS: { id: string; label: string; perm: Perm; desc: string }[] = [
+    { id: 'e',  label: 'e',   perm: [0, 1, 2], desc: 'Identity — do nothing' },
+    { id: 'r',  label: 'r',   perm: [2, 0, 1], desc: 'Rotate 120° CCW' },
+    { id: 'r2', label: 'r²',  perm: [1, 2, 0], desc: 'Rotate 240° CCW' },
+    { id: 's1', label: 's₁',  perm: [0, 2, 1], desc: 'Reflect over top axis' },
+    { id: 's2', label: 's₂',  perm: [2, 1, 0], desc: 'Reflect over right axis' },
+    { id: 's3', label: 's₃',  perm: [1, 0, 2], desc: 'Reflect over left axis' },
+];
 
-    return (
-        <group ref={meshRef}>
-            {/* Edges */}
-            <Line points={points} color="#94a3b8" lineWidth={5} />
+/* Compose: apply nextOp on top of the current state */
+function applyOp(current: Perm, op: Perm): Perm {
+    return [current[op[0]], current[op[1]], current[op[2]]] as Perm;
+}
 
-            {/* Fill area (transparent) */}
-            <mesh>
-                <shapeGeometry args={[(() => {
-                    const s = new THREE.Shape();
-                    s.moveTo(data.vertices[0][0], data.vertices[0][1]);
-                    for (let i = 1; i < data.vertices.length; i++) s.lineTo(data.vertices[i][0], data.vertices[i][1]);
-                    return s;
-                })()]} />
-                <meshStandardMaterial color="#cbd5e1" transparent opacity={0.2} side={THREE.DoubleSide} />
-            </mesh>
-
-            {/* Vertices */}
-            {data.vertices.map((v, i) => (
-                <group key={i} position={[v[0], v[1], 0.1]}>
-                    <mesh>
-                        <sphereGeometry args={[0.3, 32, 32]} />
-                        <meshStandardMaterial color={data.colors[i]} />
-                    </mesh>
-                    <Text position={[0, 0, 0.4]} fontSize={0.3} color="white" fontWeight="bold">
-                        {i + 1}
-                    </Text>
-                </group>
-            ))}
-
-            {/* Orientation Marker (F) */}
-            <Text position={[0, 0, 0.1]} fontSize={1} color="#64748b" fillOpacity={0.5}>F</Text>
-        </group>
-    );
+function findLabel(p: Perm): string {
+    const op = OPERATIONS.find(o => o.perm.every((v, i) => v === p[i]));
+    return op ? op.label : '?';
 }
 
 export default function SymmetryGroupLab() {
-    const [shape, setShape] = useState<ShapeType>('square');
-    const [targetRotation, setTargetRotation] = useState(0);
-    const [targetScale, setTargetScale] = useState<[number, number]>([1, 1]);
-    const [history, setHistory] = useState<string[]>(["Identity"]);
-    const [animating, setAnimating] = useState(false);
+    const [state, setState] = useState<Perm>([0, 1, 2]);
+    const [lastOp, setLastOp] = useState<{ label: string; desc: string }>({ label: 'e', desc: 'Identity — do nothing' });
+    const [history, setHistory] = useState<string[]>([]);
+
+    const handleOp = (op: typeof OPERATIONS[0]) => {
+        setState(prev => applyOp(prev, op.perm));
+        setLastOp({ label: op.label, desc: op.desc });
+        setHistory(prev => [...prev.slice(-4), op.label]);
+    };
 
     const reset = () => {
-        setTargetRotation(0);
-        setTargetScale([1, 1]);
-        setHistory(["Identity"]);
+        setState([0, 1, 2]);
+        setLastOp({ label: 'e', desc: 'Identity — do nothing' });
+        setHistory([]);
     };
 
-    const applyOperation = (op: string) => {
-        setAnimating(true);
-        let name = "";
-
-        switch (op) {
-            case 'rot90':
-                setTargetRotation(r => r + Math.PI / 2);
-                name = "Rotate 90°";
-                break;
-            case 'rot180':
-                setTargetRotation(r => r + Math.PI);
-                name = "Rotate 180°";
-                break;
-            case 'rot120':
-                setTargetRotation(r => r + (2 * Math.PI / 3));
-                name = "Rotate 120°";
-                break;
-            case 'flipX':
-                setTargetScale(s => [-s[0], s[1]]); // Flip X
-                name = "Flip Horizontal";
-                break;
-            case 'flipY':
-                setTargetScale(s => [s[0], -s[1]]); // Flip Y
-                name = "Flip Vertical";
-                break;
-        }
-
-        setHistory(prev => [...prev.slice(-4), name]);
-
-        // Reset animation flag after delay (approximate)
-        setTimeout(() => setAnimating(false), 500);
-    };
+    const slotNames = ['top', 'right', 'left'];
 
     return (
-        <div className="p-6 bg-slate-50 rounded-xl border border-slate-200 shadow-sm">
-            <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col lg:flex-row gap-6 p-6 bg-slate-50 rounded-xl border border-slate-200">
+
+            {/* ── Left panel ── */}
+            <div className="w-full lg:w-64 shrink-0 space-y-4">
                 <div>
-                    <h3 className="text-xl font-bold text-slate-800">Symmetry Group Visualizer</h3>
-                    <p className="text-sm text-slate-600">Explore the symmetries of {SHAPES[shape].name}</p>
+                    <h3 className="text-lg font-bold text-slate-800">D₃ Symmetry Group</h3>
+                    <p className="text-xs text-slate-500 mt-1">Apply operations to explore how symmetries compose.</p>
                 </div>
 
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => { setShape('triangle'); reset(); }}
-                        className={`p-2 rounded ${shape === 'triangle' ? 'bg-indigo-100 text-indigo-700 border-indigo-200' : 'bg-white border-slate-200'} border`}
-                    >
-                        <Triangle size={20} />
-                    </button>
-                    <button
-                        onClick={() => { setShape('square'); reset(); }}
-                        className={`p-2 rounded ${shape === 'square' ? 'bg-indigo-100 text-indigo-700 border-indigo-200' : 'bg-white border-slate-200'} border`}
-                    >
-                        <Box size={20} />
-                    </button>
+                {/* Operation buttons */}
+                <div className="bg-white rounded-xl border border-slate-200 p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Apply Operation</p>
+                    <div className="grid grid-cols-3 gap-2">
+                        {OPERATIONS.map(op => (
+                            <button
+                                key={op.id}
+                                onClick={() => handleOp(op)}
+                                className="flex flex-col items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-2 py-3 text-center transition-colors hover:border-indigo-400 hover:bg-indigo-50"
+                            >
+                                <span className="text-base font-bold text-slate-700">{op.label}</span>
+                                <span className="text-[9px] text-slate-400 mt-0.5">
+                                    {op.id === 'e' ? 'identity' : op.id.startsWith('r') ? 'rotation' : 'reflect'}
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Current vertex state */}
+                <div className="bg-indigo-50 rounded-xl border border-indigo-200 p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-400 mb-2">Vertex State</p>
+                    <div className="space-y-1.5">
+                        {slotNames.map((name, i) => (
+                            <div key={i} className="flex items-center gap-2">
+                                <span className="text-xs text-slate-500 w-10">{name}:</span>
+                                <span
+                                    className="inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white"
+                                    style={{ background: VERTEX_COLORS[state[i]] }}
+                                >
+                                    {VERTEX_LABELS[state[i]]}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="mt-3 border-t border-indigo-200 pt-2">
+                        <p className="text-xs text-indigo-700">
+                            Net: <strong>{findLabel(state)}</strong>
+                        </p>
+                    </div>
+                </div>
+
+                {/* History */}
+                {history.length > 0 && (
+                    <div className="bg-white rounded-xl border border-slate-200 p-4">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">History</p>
+                        <p className="text-sm font-mono text-slate-600">{history.join(' → ')}</p>
+                        <p className="text-xs text-slate-400 mt-1">Net: <strong className="text-slate-600">{findLabel(state)}</strong></p>
+                    </div>
+                )}
+
+                <button
+                    onClick={reset}
+                    className="w-full rounded-lg border border-slate-200 bg-white py-2 text-sm font-medium text-slate-600 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 transition-colors"
+                >
+                    Reset to Identity
+                </button>
+
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-amber-500 mb-1">Last applied</p>
+                    <p className="text-sm font-bold text-amber-800">{lastOp.label}</p>
+                    <p className="text-xs text-amber-700 mt-1">{lastOp.desc}</p>
                 </div>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-6">
-                {/* Controls */}
-                <div className="md:w-64 space-y-4">
-                    <div className="p-4 bg-white rounded-lg border border-slate-200">
-                        <h4 className="font-semibold text-slate-700 mb-3 text-sm">Operations</h4>
-                        <div className="grid grid-cols-1 gap-2">
-                            {/* Rotations */}
-                            {shape === 'square' ? (
-                                <>
-                                    <button onClick={() => applyOperation('rot90')} className="px-3 py-2 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 text-sm font-medium transition-colors text-left flex justify-between">
-                                        Rotate 90° <span>r</span>
-                                    </button>
-                                    <button onClick={() => applyOperation('rot180')} className="px-3 py-2 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 text-sm font-medium transition-colors text-left flex justify-between">
-                                        Rotate 180° <span>r²</span>
-                                    </button>
-                                </>
-                            ) : (
-                                <>
-                                    <button onClick={() => applyOperation('rot120')} className="px-3 py-2 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 text-sm font-medium transition-colors text-left flex justify-between">
-                                        Rotate 120° <span>r</span>
-                                    </button>
-                                </>
-                            )}
+            {/* ── SVG canvas ── */}
+            <div className="flex-1 bg-white rounded-xl border border-slate-200 overflow-hidden flex items-center justify-center min-h-[300px]">
+                <svg width="300" height="260" viewBox="0 0 300 260" style={{ display: 'block' }}>
 
-                            {/* Reflections */}
-                            <button onClick={() => applyOperation('flipX')} className="px-3 py-2 bg-red-50 text-red-700 rounded hover:bg-red-100 text-sm font-medium transition-colors text-left flex justify-between">
-                                Flip Horizontal <span>h</span>
-                            </button>
-                            <button onClick={() => applyOperation('flipY')} className="px-3 py-2 bg-red-50 text-red-700 rounded hover:bg-red-100 text-sm font-medium transition-colors text-left flex justify-between">
-                                Flip Vertical <span>v</span>
-                            </button>
+                    {/* Triangle fill */}
+                    <polygon
+                        points={SLOT_POS.map(([x, y]) => `${x},${y}`).join(' ')}
+                        fill="#eef2ff"
+                        stroke="#818cf8"
+                        strokeWidth={2}
+                    />
 
-                            <div className="h-px bg-slate-200 my-2"></div>
+                    {/* Vertex circles */}
+                    {slotNames.map((_, slotIdx) => {
+                        const [px, py] = SLOT_POS[slotIdx];
+                        const orig = state[slotIdx];
+                        return (
+                            <g key={slotIdx}>
+                                <circle cx={px} cy={py} r={22} fill={VERTEX_COLORS[orig]} stroke="white" strokeWidth={3} />
+                                <text x={px} y={py} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize={14} fontWeight="bold">
+                                    {VERTEX_LABELS[orig]}
+                                </text>
+                            </g>
+                        );
+                    })}
 
-                            <button onClick={reset} className="px-3 py-2 bg-slate-100 text-slate-700 rounded hover:bg-slate-200 text-sm font-medium transition-colors flex items-center gap-2 justify-center">
-                                <RotateCcw size={14} /> Reset
-                            </button>
-                        </div>
-                    </div>
+                    {/* Centroid label */}
+                    <text x={150} y={152} textAnchor="middle" dominantBaseline="middle" fill="#818cf8" fontSize={12} fontStyle="italic">D₃</text>
 
-                    <div className="p-4 bg-slate-100 rounded-lg border border-slate-200">
-                        <h4 className="font-semibold text-slate-700 mb-2 text-sm">Operation History</h4>
-                        <ul className="text-sm space-y-1 text-slate-600 font-mono">
-                            {history.map((op, i) => (
-                                <li key={i} className={i === history.length - 1 ? "font-bold text-indigo-600" : ""}>
-                                    {i}. {op}
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                </div>
-
-                {/* Canvas */}
-                <div className="flex-1 h-[400px] bg-slate-900 rounded-lg overflow-hidden relative border border-slate-800">
-                    <div className="absolute top-4 left-4 text-white/50 text-xs z-10">
-                        {shape === 'square' ? 'Group Order: 8' : 'Group Order: 6'}
-                    </div>
-                    <Canvas camera={{ position: [0, 0, 6], fov: 50 }}>
-                        <color attach="background" args={['#0f172a']} />
-                        <OrbitControls makeDefault enableRotate={false} />
-                        <ambientLight intensity={0.8} />
-                        <pointLight position={[5, 5, 5]} intensity={0.5} />
-
-                        <Polygon
-                            shape={shape}
-                            rotation={targetRotation}
-                            scaleV={targetScale}
-                            animating={animating}
-                        />
-                    </Canvas>
-                </div>
-            </div>
-
-            <div className="mt-4 p-3 bg-indigo-50 border border-indigo-100 rounded text-sm text-indigo-800">
-                <p><strong>Observation:</strong> Notice how applying two operations in sequence results in another symmetry of the shape. This <strong>closure</strong> property is a fundamental axiom of Group Theory.</p>
+                    {/* Legend */}
+                    <g transform="translate(6,228)">
+                        <rect width={288} height={26} rx={5} fill="white" stroke="#e2e8f0" />
+                        {VERTEX_COLORS.map((c, i) => (
+                            <g key={i} transform={`translate(${10 + i * 93}, 4)`}>
+                                <circle cx={8} cy={9} r={7} fill={c} />
+                                <text x={19} y={13} fill="#475569" fontSize={10} fontWeight="600">Vertex {i + 1}</text>
+                            </g>
+                        ))}
+                    </g>
+                </svg>
             </div>
         </div>
     );

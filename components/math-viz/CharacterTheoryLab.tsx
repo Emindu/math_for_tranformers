@@ -1,450 +1,260 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
-import Latex from 'react-latex-next';
-import 'katex/dist/katex.min.css';
 
-// ── Group definitions for character tables ──────────────────────────────────────
-interface CharGroupDef {
+/* ────────────────────────────────────────────────────────────────────────────
+   Character Theory Lab — pure SVG/HTML, no framer-motion, no Three.js
+   Shows interactive character tables with orthogonality check.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+interface CharGroup {
     name: string;
-    latex: string;
     order: number;
-    conjugacyClasses: { label: string; size: number; representative: string }[];
+    classes: string[];
+    classSizes: number[];
     irrepLabels: string[];
-    // Character table: charTable[irrep][class] = character value
-    charTable: number[][];
+    table: number[][];   // table[irrep][class] = character value (real approx)
 }
 
-const CHAR_GROUPS: Record<string, CharGroupDef> = {
+const CHAR_GROUPS: Record<string, CharGroup> = {
     Z3: {
-        name: "ℤ₃",
-        latex: "$\\mathbb{Z}_3$",
-        order: 3,
-        conjugacyClasses: [
-            { label: "{0}", size: 1, representative: "0" },
-            { label: "{1}", size: 1, representative: "1" },
-            { label: "{2}", size: 1, representative: "2" },
-        ],
-        irrepLabels: ["χ₀", "χ₁", "χ₂"],
-        charTable: [
-            [1, 1, 1],          // trivial
-            [1, -0.5, -0.5],    // approx e^(2πi/3) trace (real part for display)
-            [1, -0.5, -0.5],    // approx e^(4πi/3) trace
+        name: 'ℤ₃', order: 3,
+        classes: ['{0}', '{1}', '{2}'],
+        classSizes: [1, 1, 1],
+        irrepLabels: ['χ₀', 'χ₁', 'χ₂'],
+        table: [
+            [1,  1,    1  ],
+            [1, -0.5, -0.5],
+            [1, -0.5, -0.5],
         ],
     },
     Z4: {
-        name: "ℤ₄",
-        latex: "$\\mathbb{Z}_4$",
-        order: 4,
-        conjugacyClasses: [
-            { label: "{0}", size: 1, representative: "0" },
-            { label: "{1}", size: 1, representative: "1" },
-            { label: "{2}", size: 1, representative: "2" },
-            { label: "{3}", size: 1, representative: "3" },
-        ],
-        irrepLabels: ["χ₀", "χ₁", "χ₂", "χ₃"],
-        charTable: [
-            [1, 1, 1, 1],
-            [1, 0, -1, 0],      // i → 0 (real part)
-            [1, -1, 1, -1],
-            [1, 0, -1, 0],      // -i → 0
+        name: 'ℤ₄', order: 4,
+        classes: ['{0}', '{1}', '{2}', '{3}'],
+        classSizes: [1, 1, 1, 1],
+        irrepLabels: ['χ₀', 'χ₁', 'χ₂', 'χ₃'],
+        table: [
+            [1,  1,  1,  1],
+            [1,  0, -1,  0],
+            [1, -1,  1, -1],
+            [1,  0, -1,  0],
         ],
     },
     S3: {
-        name: "S₃",
-        latex: "$S_3$",
-        order: 6,
-        conjugacyClasses: [
-            { label: "{e}", size: 1, representative: "e" },
-            { label: "{(12),(13),(23)}", size: 3, representative: "(12)" },
-            { label: "{(123),(132)}", size: 2, representative: "(123)" },
-        ],
-        irrepLabels: ["trivial", "sign", "standard"],
-        charTable: [
-            [1, 1, 1],          // trivial
-            [1, -1, 1],         // sign
-            [2, 0, -1],         // standard (2-dim)
+        name: 'S₃', order: 6,
+        classes: ['{e}', '{(12),(13),(23)}', '{(123),(132)}'],
+        classSizes: [1, 3, 2],
+        irrepLabels: ['χ_triv', 'χ_sign', 'χ_std'],
+        table: [
+            [1,  1,  1],
+            [1, -1,  1],
+            [2,  0, -1],
         ],
     },
-    D4: {
-        name: "D₄",
-        latex: "$D_4$",
-        order: 8,
-        conjugacyClasses: [
-            { label: "{e}", size: 1, representative: "e" },
-            { label: "{r²}", size: 1, representative: "r²" },
-            { label: "{r,r³}", size: 2, representative: "r" },
-            { label: "{s,r²s}", size: 2, representative: "s" },
-            { label: "{rs,r³s}", size: 2, representative: "rs" },
-        ],
-        irrepLabels: ["A₁", "A₂", "B₁", "B₂", "E"],
-        charTable: [
-            [1, 1, 1, 1, 1],
-            [1, 1, 1, -1, -1],
-            [1, 1, -1, 1, -1],
-            [1, 1, -1, -1, 1],
-            [2, -2, 0, 0, 0],
-        ],
+    Z5: {
+        name: 'ℤ₅', order: 5,
+        classes: ['{0}', '{1}', '{2}', '{3}', '{4}'],
+        classSizes: [1, 1, 1, 1, 1],
+        irrepLabels: ['χ₀', 'χ₁', 'χ₂', 'χ₃', 'χ₄'],
+        table: Array.from({ length: 5 }, (_, k) =>
+            Array.from({ length: 5 }, (_, j) => Math.round(1000 * Math.cos(2 * Math.PI * k * j / 5)) / 1000)
+        ),
     },
 };
 
-// Color scale for character values
-function charColor(val: number): string {
-    if (val > 0) return `rgba(16, 185, 129, ${Math.min(1, Math.abs(val) / 2 * 0.6 + 0.3)})`;
-    if (val < 0) return `rgba(239, 68, 68, ${Math.min(1, Math.abs(val) / 2 * 0.6 + 0.3)})`;
-    return "rgba(100, 116, 139, 0.3)";
+/* Inner product ⟨χᵢ, χⱼ⟩ = (1/|G|) Σ_c |c| · χᵢ(c) · χⱼ(c) */
+function innerProduct(g: CharGroup, i: number, j: number): number {
+    let sum = 0;
+    for (let c = 0; c < g.classes.length; c++) {
+        sum += g.classSizes[c] * g.table[i][c] * g.table[j][c];
+    }
+    return Math.round((sum / g.order) * 100) / 100;
 }
 
-// ── Character Table SVG ─────────────────────────────────────────────────────────
-function CharacterTableSVG({ group, highlightedIrrep, highlightedClass }: {
-    group: CharGroupDef;
-    highlightedIrrep: number | null;
-    highlightedClass: number | null;
-}) {
-    const nR = group.irrepLabels.length;
-    const nC = group.conjugacyClasses.length;
-    const cellW = 56;
-    const cellH = 36;
-    const headerH = 44;
-    const labelW = 70;
-    const totalW = labelW + nC * cellW;
-    const totalH = headerH + nR * cellH;
-
-    return (
-        <div className="overflow-x-auto">
-            <svg width={totalW} height={totalH} className="mx-auto">
-                {/* Corner */}
-                <rect x={0} y={0} width={labelW} height={headerH} fill="#1e293b" rx={4} />
-                <text x={labelW / 2} y={headerH / 2 + 4} textAnchor="middle"
-                    fill="#94a3b8" fontSize={10} fontWeight="bold">χ \ C</text>
-
-                {/* Column headers (conjugacy classes) */}
-                {group.conjugacyClasses.map((cls, j) => (
-                    <g key={`ch-${j}`}>
-                        <rect x={labelW + j * cellW} y={0}
-                            width={cellW} height={headerH}
-                            fill={highlightedClass === j ? "#312e81" : "#1e293b"} rx={2} />
-                        <text x={labelW + j * cellW + cellW / 2} y={headerH / 2 - 2}
-                            textAnchor="middle" fill="#e2e8f0"
-                            fontSize={9} fontWeight="bold">{cls.representative}</text>
-                        <text x={labelW + j * cellW + cellW / 2} y={headerH / 2 + 12}
-                            textAnchor="middle" fill="#64748b"
-                            fontSize={7}>size {cls.size}</text>
-                    </g>
-                ))}
-
-                {/* Row labels (irreps) */}
-                {group.irrepLabels.map((label, i) => (
-                    <g key={`rh-${i}`}>
-                        <rect x={0} y={headerH + i * cellH}
-                            width={labelW} height={cellH}
-                            fill={highlightedIrrep === i ? "#312e81" : "#1e293b"} rx={2} />
-                        <text x={labelW / 2} y={headerH + i * cellH + cellH / 2 + 4}
-                            textAnchor="middle" fill="#e2e8f0"
-                            fontSize={10} fontWeight="bold">{label}</text>
-                    </g>
-                ))}
-
-                {/* Body cells */}
-                {group.charTable.map((row, i) =>
-                    row.map((val, j) => {
-                        const isHighlighted = highlightedIrrep === i || highlightedClass === j;
-                        return (
-                            <motion.g key={`c-${i}-${j}`}
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: (i * nC + j) * 0.02 }}>
-                                <rect
-                                    x={labelW + j * cellW + 1}
-                                    y={headerH + i * cellH + 1}
-                                    width={cellW - 2}
-                                    height={cellH - 2}
-                                    fill={charColor(val)}
-                                    rx={3}
-                                    stroke={isHighlighted ? "#818cf8" : "transparent"}
-                                    strokeWidth={isHighlighted ? 2 : 0}
-                                />
-                                <text
-                                    x={labelW + j * cellW + cellW / 2}
-                                    y={headerH + i * cellH + cellH / 2 + 4}
-                                    textAnchor="middle"
-                                    fill="#ffffff"
-                                    fontSize={12}
-                                    fontWeight="700"
-                                >
-                                    {Number.isInteger(val) ? val : val.toFixed(1)}
-                                </text>
-                            </motion.g>
-                        );
-                    })
-                )}
-            </svg>
-        </div>
-    );
+function cellColor(val: number): string {
+    if (val === 0) return '#f1f5f9';
+    if (val > 0) {
+        const t = Math.min(val / 2, 1);
+        const b = Math.round(255 - t * 120);
+        return `rgb(${b},${b},255)`;
+    }
+    const t = Math.min(-val / 2, 1);
+    const g = Math.round(255 - t * 120);
+    return `rgb(255,${g},${g})`;
 }
 
-// ── Orthogonality Visualization ─────────────────────────────────────────────────
-function OrthogonalityViz({ group, irrepA, irrepB }: {
-    group: CharGroupDef;
-    irrepA: number;
-    irrepB: number;
-}) {
-    const rowA = group.charTable[irrepA];
-    const rowB = group.charTable[irrepB];
-
-    // Compute inner product: (1/|G|) Σ |C_i| χ_a(g_i) conj(χ_b(g_i))
-    // For real characters, conj is just the value
-    const terms = group.conjugacyClasses.map((cls, i) => ({
-        size: cls.size,
-        chiA: rowA[i],
-        chiB: rowB[i],
-        product: cls.size * rowA[i] * rowB[i],
-    }));
-    const innerProduct = terms.reduce((sum, t) => sum + t.product, 0) / group.order;
-    const isOrthogonal = Math.abs(innerProduct) < 1e-6;
-    const isSame = irrepA === irrepB;
-
-    const barMaxW = 140;
-
-    return (
-        <div className="bg-slate-800 rounded-xl p-5 border border-slate-700">
-            <div className="text-center mb-4">
-                <span className="text-slate-300 text-sm">
-                    <Latex>{`$\\langle ${group.irrepLabels[irrepA]}, ${group.irrepLabels[irrepB]} \\rangle$`}</Latex>
-                    <span className="mx-2">=</span>
-                    <Latex>{"$\\frac{1}{|G|} \\sum_{g} \\chi_a(g)\\overline{\\chi_b(g)}$"}</Latex>
-                </span>
-            </div>
-
-            {/* Term breakdown */}
-            <div className="space-y-2 mb-4">
-                {terms.map((t, i) => {
-                    const val = t.product / group.order;
-                    const absVal = Math.abs(val);
-                    return (
-                        <div key={i} className="flex items-center gap-2 text-xs">
-                            <span className="text-slate-400 font-mono w-8 text-right">{group.conjugacyClasses[i].representative}</span>
-                            <span className="text-slate-500 w-24">
-                                {t.size}×{t.chiA}×{t.chiB} = {t.product}
-                            </span>
-                            <motion.div
-                                className="rounded"
-                                style={{
-                                    height: 16,
-                                    backgroundColor: val >= 0 ? "#10b981" : "#ef4444",
-                                }}
-                                initial={{ width: 0 }}
-                                animate={{ width: Math.max(2, absVal * barMaxW) }}
-                                transition={{ delay: i * 0.1 }}
-                            />
-                            <span className="text-slate-400 text-[10px]">{val.toFixed(3)}</span>
-                        </div>
-                    );
-                })}
-            </div>
-
-            {/* Result */}
-            <div className="pt-3 border-t border-slate-700 text-center">
-                <span className="text-lg font-bold">
-                    <span className={isSame ? "text-emerald-400" : isOrthogonal ? "text-blue-400" : "text-amber-400"}>
-                        ⟨{group.irrepLabels[irrepA]}, {group.irrepLabels[irrepB]}⟩ = {innerProduct.toFixed(3)}
-                    </span>
-                </span>
-                <div className="mt-1 text-xs">
-                    {isSame ? (
-                        <span className="text-emerald-300">= 1 (same irrep, normalized)</span>
-                    ) : isOrthogonal ? (
-                        <span className="text-blue-300">= 0 (orthogonal — different irreps!)</span>
-                    ) : (
-                        <span className="text-amber-300">≠ 0</span>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
+function fmt(v: number): string {
+    if (Math.abs(v - Math.round(v)) < 0.01) return String(Math.round(v));
+    return v.toFixed(2);
 }
 
-// ── Main Lab Component ──────────────────────────────────────────────────────────
 export default function CharacterTheoryLab() {
-    const [groupKey, setGroupKey] = useState<string>("S3");
-    const [highlightedIrrep, setHighlightedIrrep] = useState<number | null>(null);
-    const [highlightedClass, setHighlightedClass] = useState<number | null>(null);
-    const [irrepA, setIrrepA] = useState(0);
-    const [irrepB, setIrrepB] = useState(1);
-    const [activeTab, setActiveTab] = useState<"table" | "orthogonality">("table");
+    const [groupKey, setGroupKey] = useState('S3');
+    const [selected, setSelected] = useState<[number, number] | null>(null);
+    const [showOrtho, setShowOrtho] = useState(false);
 
-    const group = CHAR_GROUPS[groupKey];
+    const g = CHAR_GROUPS[groupKey];
+    const numIrreps = g.irrepLabels.length;
+    const numClasses = g.classes.length;
 
-    const handleGroupChange = (key: string) => {
-        setGroupKey(key);
-        setHighlightedIrrep(null);
-        setHighlightedClass(null);
-        setIrrepA(0);
-        setIrrepB(1);
-    };
+    const orthoMatrix = useMemo(() => {
+        return Array.from({ length: numIrreps }, (_, i) =>
+            Array.from({ length: numIrreps }, (_, j) => innerProduct(g, i, j))
+        );
+    }, [g, numIrreps]);
+
+    const selectedVal = selected ? g.table[selected[0]][selected[1]] : null;
 
     return (
-        <div className="p-6 bg-slate-50 rounded-xl border border-slate-200 shadow-sm">
+        <div className="flex flex-col gap-6 p-6 bg-slate-50 rounded-xl border border-slate-200">
+
             {/* Header */}
-            <div className="mb-5">
-                <h3 className="text-xl font-bold text-slate-800">Character Table Explorer</h3>
-                <p className="text-sm text-slate-600 mt-1">
-                    Explore character tables and verify orthogonality relations
-                </p>
+            <div>
+                <h3 className="text-lg font-bold text-slate-800">Character Theory Lab</h3>
+                <p className="text-xs text-slate-500 mt-1">Click cells to inspect values. Check orthogonality of irreducible characters.</p>
             </div>
 
             {/* Group selector */}
-            <div className="flex flex-wrap gap-2 mb-4">
-                {Object.entries(CHAR_GROUPS).map(([key, g]) => (
+            <div className="flex flex-wrap gap-2">
+                {Object.keys(CHAR_GROUPS).map(key => (
                     <button
                         key={key}
-                        onClick={() => handleGroupChange(key)}
-                        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${groupKey === key
-                                ? 'bg-indigo-600 text-white shadow-md'
-                                : 'bg-white text-slate-700 border border-slate-200 hover:border-indigo-300'
+                        onClick={() => { setGroupKey(key); setSelected(null); setShowOrtho(false); }}
+                        className={`rounded-lg border px-4 py-1.5 text-sm font-semibold transition-colors ${groupKey === key
+                            ? 'border-indigo-400 bg-indigo-50 text-indigo-700'
+                            : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-300'
                             }`}
                     >
-                        {g.name}
+                        {CHAR_GROUPS[key].name}
                     </button>
                 ))}
+                <button
+                    onClick={() => setShowOrtho(v => !v)}
+                    className={`rounded-lg border px-4 py-1.5 text-sm font-semibold transition-colors ml-auto ${showOrtho
+                        ? 'border-emerald-400 bg-emerald-50 text-emerald-700'
+                        : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-300'
+                        }`}
+                >
+                    {showOrtho ? 'Hide' : 'Check'} Orthogonality
+                </button>
             </div>
 
-            {/* Tab switcher */}
-            <div className="flex gap-1 mb-5 bg-slate-200 rounded-lg p-1">
-                {([
-                    { key: "table", label: "Character Table" },
-                    { key: "orthogonality", label: "Orthogonality Check" },
-                ] as const).map(tab => (
-                    <button
-                        key={tab.key}
-                        onClick={() => setActiveTab(tab.key)}
-                        className={`flex-1 px-3 py-2 rounded-md text-xs font-semibold transition-all ${activeTab === tab.key
-                                ? 'bg-white text-slate-800 shadow-sm'
-                                : 'text-slate-500 hover:text-slate-700'
-                            }`}
-                    >
-                        {tab.label}
-                    </button>
-                ))}
-            </div>
-
-            {activeTab === "table" && (
-                <div>
-                    {/* Highlight controls */}
-                    <div className="flex flex-wrap gap-4 mb-4">
-                        <div>
-                            <span className="text-xs text-slate-500 font-semibold">Highlight irrep:</span>
-                            <div className="flex gap-1 mt-1">
-                                <button
-                                    onClick={() => setHighlightedIrrep(null)}
-                                    className={`px-2 py-1 rounded text-xs ${highlightedIrrep === null ? 'bg-slate-700 text-white' : 'bg-white text-slate-500 border'}`}
-                                >
-                                    none
-                                </button>
-                                {group.irrepLabels.map((label, i) => (
-                                    <button
-                                        key={i}
-                                        onClick={() => setHighlightedIrrep(i)}
-                                        className={`px-2 py-1 rounded text-xs ${highlightedIrrep === i ? 'bg-indigo-600 text-white' : 'bg-white text-slate-500 border'}`}
-                                    >
-                                        {label}
-                                    </button>
+            <div className="flex flex-col lg:flex-row gap-6">
+                {/* Character table */}
+                <div className="flex-1">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
+                        Character Table — {g.name}  (|G| = {g.order})
+                    </p>
+                    <div className="overflow-x-auto">
+                        <table className="text-sm border-collapse w-full">
+                            <thead>
+                                <tr>
+                                    <th className="border border-slate-200 bg-slate-100 px-3 py-2 text-left text-xs text-slate-500 font-semibold">Irrep \ Class</th>
+                                    {g.classes.map((cls, c) => (
+                                        <th key={c} className="border border-slate-200 bg-slate-100 px-3 py-2 text-center text-xs text-slate-600 font-semibold">
+                                            {cls}
+                                            <span className="block text-[9px] text-slate-400 font-normal">size {g.classSizes[c]}</span>
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {g.irrepLabels.map((label, i) => (
+                                    <tr key={i}>
+                                        <td className="border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700">{label}</td>
+                                        {Array.from({ length: numClasses }, (_, c) => {
+                                            const val = g.table[i][c];
+                                            const isSel = selected && selected[0] === i && selected[1] === c;
+                                            return (
+                                                <td
+                                                    key={c}
+                                                    onClick={() => setSelected([i, c])}
+                                                    className="border border-slate-200 px-3 py-2 text-center text-sm font-mono font-bold cursor-pointer transition-all"
+                                                    style={{
+                                                        background: isSel ? '#6366f1' : cellColor(val),
+                                                        color: isSel ? 'white' : val === 0 ? '#94a3b8' : '#1e293b',
+                                                        outline: isSel ? '2px solid #4f46e5' : undefined,
+                                                    }}
+                                                >
+                                                    {fmt(val)}
+                                                </td>
+                                            );
+                                        })}
+                                    </tr>
                                 ))}
-                            </div>
-                        </div>
-                        <div>
-                            <span className="text-xs text-slate-500 font-semibold">Highlight class:</span>
-                            <div className="flex gap-1 mt-1">
-                                <button
-                                    onClick={() => setHighlightedClass(null)}
-                                    className={`px-2 py-1 rounded text-xs ${highlightedClass === null ? 'bg-slate-700 text-white' : 'bg-white text-slate-500 border'}`}
-                                >
-                                    none
-                                </button>
-                                {group.conjugacyClasses.map((cls, i) => (
-                                    <button
-                                        key={i}
-                                        onClick={() => setHighlightedClass(i)}
-                                        className={`px-2 py-1 rounded text-xs ${highlightedClass === i ? 'bg-indigo-600 text-white' : 'bg-white text-slate-500 border'}`}
-                                    >
-                                        {cls.representative}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+                            </tbody>
+                        </table>
                     </div>
 
-                    <div className="bg-slate-900 rounded-xl p-4 border border-slate-800">
-                        <CharacterTableSVG
-                            group={group}
-                            highlightedIrrep={highlightedIrrep}
-                            highlightedClass={highlightedClass}
-                        />
-                    </div>
-
-                    <div className="mt-3 flex gap-4 justify-center text-xs text-slate-500">
-                        <span className="flex items-center gap-1.5">
-                            <span className="w-3 h-3 rounded" style={{ backgroundColor: "rgba(16, 185, 129, 0.7)" }}></span>
-                            Positive
-                        </span>
-                        <span className="flex items-center gap-1.5">
-                            <span className="w-3 h-3 rounded" style={{ backgroundColor: "rgba(239, 68, 68, 0.7)" }}></span>
-                            Negative
-                        </span>
-                        <span className="flex items-center gap-1.5">
-                            <span className="w-3 h-3 rounded" style={{ backgroundColor: "rgba(100, 116, 139, 0.3)" }}></span>
-                            Zero
-                        </span>
-                    </div>
+                    {/* Selected cell explanation */}
+                    {selected && (
+                        <div className="mt-3 bg-indigo-50 border border-indigo-200 rounded-xl p-3">
+                            <p className="text-xs font-bold text-indigo-700 mb-1">
+                                {g.irrepLabels[selected[0]]}({g.classes[selected[1]]}) = {fmt(selectedVal ?? 0)}
+                            </p>
+                            <p className="text-xs text-indigo-600">
+                                This is the trace of the representing matrix for elements in conjugacy class {g.classes[selected[1]]}
+                                under irreducible representation {g.irrepLabels[selected[0]]}.
+                            </p>
+                        </div>
+                    )}
                 </div>
-            )}
 
-            {activeTab === "orthogonality" && (
-                <div>
-                    <div className="flex flex-wrap gap-4 mb-4">
-                        <div>
-                            <span className="text-xs text-slate-500 font-semibold">χ_a:</span>
-                            <div className="flex gap-1 mt-1">
-                                {group.irrepLabels.map((label, i) => (
-                                    <button
-                                        key={i}
-                                        onClick={() => setIrrepA(i)}
-                                        className={`px-2 py-1 rounded text-xs ${irrepA === i ? 'bg-emerald-600 text-white' : 'bg-white text-slate-500 border'}`}
-                                    >
-                                        {label}
-                                    </button>
-                                ))}
+                {/* Orthogonality matrix */}
+                {showOrtho && (
+                    <div className="lg:w-72">
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
+                            Inner Product Matrix ⟨χᵢ, χⱼ⟩
+                        </p>
+                        <div className="overflow-x-auto">
+                            <table className="text-xs border-collapse">
+                                <thead>
+                                    <tr>
+                                        <th className="border border-slate-200 bg-slate-100 px-2 py-1.5 text-slate-500"> </th>
+                                        {g.irrepLabels.map((l, j) => (
+                                            <th key={j} className="border border-slate-200 bg-slate-100 px-2 py-1.5 text-slate-600 font-semibold">{l}</th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {g.irrepLabels.map((label, i) => (
+                                        <tr key={i}>
+                                            <td className="border border-slate-200 bg-slate-50 px-2 py-1.5 font-bold text-slate-700">{label}</td>
+                                            {Array.from({ length: numIrreps }, (_, j) => {
+                                                const ip = orthoMatrix[i][j];
+                                                const isOne = Math.abs(ip - 1) < 0.05;
+                                                const isZero = Math.abs(ip) < 0.05;
+                                                return (
+                                                    <td key={j} className="border border-slate-200 px-2 py-1.5 text-center font-mono font-bold"
+                                                        style={{
+                                                            background: isOne ? '#d1fae5' : isZero ? '#f0fdf4' : '#fef2f2',
+                                                            color: isOne ? '#065f46' : isZero ? '#166534' : '#991b1b',
+                                                        }}
+                                                    >
+                                                        {fmt(ip)}
+                                                    </td>
+                                                );
+                                            })}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="mt-3 space-y-1">
+                            <div className="flex items-center gap-2 text-xs text-slate-600">
+                                <span className="inline-block w-3 h-3 rounded bg-emerald-200 border border-emerald-400" />
+                                1 = same irrep (norm = 1)
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-slate-600">
+                                <span className="inline-block w-3 h-3 rounded bg-green-50 border border-green-300" />
+                                0 = orthogonal irreps
                             </div>
                         </div>
-                        <div>
-                            <span className="text-xs text-slate-500 font-semibold">χ_b:</span>
-                            <div className="flex gap-1 mt-1">
-                                {group.irrepLabels.map((label, i) => (
-                                    <button
-                                        key={i}
-                                        onClick={() => setIrrepB(i)}
-                                        className={`px-2 py-1 rounded text-xs ${irrepB === i ? 'bg-violet-600 text-white' : 'bg-white text-slate-500 border'}`}
-                                    >
-                                        {label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+                        <p className="mt-3 text-xs text-slate-500">
+                            Row orthogonality: (1/|G|) Σ_g χᵢ(g)·χⱼ(g) = δᵢⱼ
+                        </p>
                     </div>
-
-                    <OrthogonalityViz group={group} irrepA={irrepA} irrepB={irrepB} />
-                </div>
-            )}
-
-            {/* Insight */}
-            <div className="mt-5 p-3 bg-indigo-50 border border-indigo-100 rounded-lg text-sm text-indigo-800">
-                <p>
-                    <strong>Observation:</strong> In the &ldquo;Orthogonality Check&rdquo; tab, select two <em>different</em> irreps
-                    and verify their inner product is 0. Then select the <em>same</em> irrep for both and
-                    see it equals 1. This is the <strong>orthogonality relation</strong> — irreducible characters
-                    form an orthonormal basis!
-                </p>
+                )}
             </div>
         </div>
     );

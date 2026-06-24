@@ -1,13 +1,12 @@
 "use client";
 
 import React from 'react';
-import { ChevronLeft } from 'lucide-react';
-import Link from 'next/link';
-import { BasicGroupConcepts, GroupsSubgroupsCosets, GroupHomomorphisms } from '@/components/content/GroupTheoryContent';
+import { BasicConceptsContent } from '@/components/content/GroupTheoryContent';
 import SymmetryGroupLab from '@/components/math-viz/SymmetryGroupLab';
 import SubgroupCosetLab from '@/components/math-viz/SubgroupCosetLab';
 import HomomorphismLab from '@/components/math-viz/HomomorphismLab';
 import AudioExplainer, { AudioSection } from '@/components/ui/AudioExplainer';
+import LessonLayout from '@/components/shell/LessonLayout';
 
 const AUDIO_SECTIONS: AudioSection[] = [
     {
@@ -38,68 +37,16 @@ const AUDIO_SECTIONS: AudioSection[] = [
 
 export default function BasicConceptsPage() {
     return (
-        <main className="min-h-screen bg-slate-50 py-12 px-4">
-            <div className="max-w-7xl mx-auto">
-                {/* Header */}
-                <div className="mb-8">
-                    <Link href="/chapter-1/group-theory" className="inline-flex items-center text-slate-500 hover:text-indigo-600 mb-4 transition-colors">
-                        <ChevronLeft size={16} /> Back to Group Theory
-                    </Link>
-                    <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">The Geometry of Intelligence</h1>
-                    <p className="text-xl text-slate-500 mt-2">Chapter 1.2.1: Basic Concepts of Group Theory</p>
-                </div>
-
-                {/* Audio Explainer */}
-                <div className="mb-12 max-w-3xl">
-                    <AudioExplainer sections={AUDIO_SECTIONS} accentColor="pink" />
-                </div>
-
-                <div className="flex flex-col gap-24">
-                    {/* Basic Group Axioms */}
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
-                        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
-                            <BasicGroupConcepts />
-                        </div>
-                        <div className="flex flex-col gap-8">
-                            <div className="sticky top-8">
-                                <SymmetryGroupLab />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Groups, Subgroups, and Cosets */}
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
-                        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
-                            <GroupsSubgroupsCosets />
-                        </div>
-                        <div className="flex flex-col gap-8">
-                            <div className="sticky top-8">
-                                <SubgroupCosetLab />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Group Homomorphisms */}
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
-                        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
-                            <GroupHomomorphisms />
-                        </div>
-                        <div className="flex flex-col gap-8">
-                            <div className="sticky top-8">
-                                <HomomorphismLab />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Next Chapter Navigation */}
-                <div className="mt-16 flex justify-end">
-                    <Link href="/chapter-1/group-theory/representation-theory"
-                        className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-full font-semibold transition-colors">
-                        Next: Representation Theory →
-                    </Link>
-                </div>
+        <LessonLayout width="wide">
+            <div className="mb-10">
+                <AudioExplainer sections={AUDIO_SECTIONS} accentColor="pink" />
             </div>
-        </main>
+
+            <BasicConceptsContent
+                groupAxiomsLab={<SymmetryGroupLab />}
+                subgroupLab={<SubgroupCosetLab />}
+                homomorphismLab={<HomomorphismLab />}
+            />
+        </LessonLayout>
     );
 }

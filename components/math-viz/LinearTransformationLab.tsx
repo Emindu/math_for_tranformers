@@ -1,173 +1,330 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Grid, Text, Line, Plane } from '@react-three/drei';
-import * as THREE from 'three';
+import React, { useState, useRef, useEffect } from 'react';
 import Latex from 'react-latex-next';
 import 'katex/dist/katex.min.css';
 
-function Arrow({ start, end, color, label }: { start: [number, number, number], end: [number, number, number], color: string, label?: string }) {
-    const startVec = new THREE.Vector3(...start);
-    const endVec = new THREE.Vector3(...end);
-    const direction = new THREE.Vector3().subVectors(endVec, startVec);
-    const length = direction.length();
+/* ── Math helpers ──────────────────────────────────────────────────────────── */
 
-    if (length < 0.1) return null;
+function applyM(m: number[][], x: number, y: number): [number, number] {
+    return [m[0][0] * x + m[0][1] * y, m[1][0] * x + m[1][1] * y];
+}
+
+function lerpM(a: number[][], b: number[][], t: number): number[][] {
+    return a.map((row, i) => row.map((v, j) => v + (b[i][j] - v) * t));
+}
+
+function det(m: number[][]): number {
+    return m[0][0] * m[1][1] - m[0][1] * m[1][0];
+}
+
+function easeInOut(t: number): number {
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+/* ── SVG coordinate helpers ────────────────────────────────────────────────── */
+
+const W = 580, H = 500, S = 58;   // viewBox width/height, pixels per unit
+const CX = W / 2, CY = H / 2;
+
+/** Math coords → SVG coords */
+function sv(x: number, y: number): [number, number] {
+    return [CX + x * S, CY - y * S];
+}
+
+/** Apply matrix then convert to SVG */
+function tv(m: number[][], x: number, y: number): [number, number] {
+    const [tx, ty] = applyM(m, x, y);
+    return sv(tx, ty);
+}
+
+/* ── SVG Arrow ─────────────────────────────────────────────────────────────── */
+
+function Arrow({ x1, y1, x2, y2, color, label, dashed, width = 2.5 }: {
+    x1: number; y1: number; x2: number; y2: number;
+    color: string; label?: string; dashed?: boolean; width?: number;
+}) {
+    const dx = x2 - x1, dy = y2 - y1;
+    const len = Math.hypot(dx, dy);
+    if (len < 5) return null;
+
+    const ux = dx / len, uy = dy / len;   // unit direction
+    const ang = Math.atan2(dy, dx);
+    const hs = 11, ha = 0.38;             // arrowhead size and spread
 
     return (
-        <group>
-            <Line points={[startVec, endVec]} color={color} lineWidth={3} />
-            <mesh position={endVec}>
-                <coneGeometry args={[0.08, 0.25, 16]} />
-                <meshStandardMaterial color={color} />
-            </mesh>
-            {label && (
-                <Text position={endVec.clone().add(new THREE.Vector3(0, 0.2, 0))} fontSize={0.25} color={color} outlineWidth={0.02} outlineColor="#000000">
-                    {label}
-                </Text>
+        <g>
+            <line
+                x1={x1} y1={y1} x2={x2} y2={y2}
+                stroke={color}
+                strokeWidth={dashed ? 1.5 : width}
+                strokeDasharray={dashed ? "6,4" : undefined}
+                strokeLinecap="round"
+            />
+            {!dashed && (
+                <polygon
+                    points={`${x2},${y2} ${x2 - hs * Math.cos(ang - ha)},${y2 - hs * Math.sin(ang - ha)} ${x2 - hs * Math.cos(ang + ha)},${y2 - hs * Math.sin(ang + ha)}`}
+                    fill={color}
+                />
             )}
-        </group>
+            {label && (
+                <text
+                    x={x2 + ux * 16}
+                    y={y2 - uy * 8}
+                    fill={color}
+                    fontSize={12}
+                    fontWeight="700"
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                >
+                    {label}
+                </text>
+            )}
+        </g>
     );
 }
 
-// Apply 2x2 matrix to a 2D point (z=0)
-function applyMatrix(m: number[][], p: [number, number]): [number, number, number] {
-    return [
-        m[0][0] * p[0] + m[0][1] * p[1],
-        m[1][0] * p[0] + m[1][1] * p[1],
-        0
-    ];
-}
+/* ── Presets ───────────────────────────────────────────────────────────────── */
+
+const PRESETS = [
+    { label: 'Identity',    m: [[1, 0], [0, 1]] },
+    { label: 'Rotate 45°',  m: [[0.707, -0.707], [0.707, 0.707]] },
+    { label: 'Rotate 90°',  m: [[0, -1], [1, 0]] },
+    { label: 'Shear X',     m: [[1, 0.8], [0, 1]] },
+    { label: 'Scale 2×',    m: [[2, 0], [0, 2]] },
+    { label: 'Reflect Y',   m: [[-1, 0], [0, 1]] },
+    { label: 'Project X',   m: [[1, 0], [0, 0]] },
+    { label: 'Squeeze',     m: [[2, 0], [0, 0.5]] },
+];
+
+const GRID_RANGE = [-4, -3, -2, -1, 0, 1, 2, 3, 4];
+const DURATION   = 680; // ms for morphing animation
+
+/* ── Main component ────────────────────────────────────────────────────────── */
 
 export default function LinearTransformationLab() {
-    // Transformation Matrix (2x2)
-    const [matrix, setMatrix] = useState<number[][]>([
-        [1, 0],
-        [0, 1]
-    ]);
+    const [target, setTarget]   = useState<number[][]>([[1, 0], [0, 1]]);
+    const [disp,   setDispState] = useState<number[][]>([[1, 0], [0, 1]]);
 
-    // Presets
-    const presets: { name: string, m: number[][] }[] = [
-        { name: 'Identity', m: [[1, 0], [0, 1]] },
-        { name: 'Rotation 45°', m: [[0.707, -0.707], [0.707, 0.707]] },
-        { name: 'Rotation 90°', m: [[0, -1], [1, 0]] },
-        { name: 'Shear X', m: [[1, 0.5], [0, 1]] },
-        { name: 'Shear Y', m: [[1, 0], [0.5, 1]] },
-        { name: 'Scale 2x', m: [[2, 0], [0, 2]] },
-        { name: 'Reflection Y', m: [[-1, 0], [0, 1]] },
-    ];
+    // Ref mirrors disp so animation closures always read the latest value
+    const dispRef = useRef<number[][]>([[1, 0], [0, 1]]);
+    const rafRef  = useRef<number | null>(null);
 
-    // Generate grid points
-    const gridPoints = useMemo(() => {
-        const points: [number, number][] = [];
-        for (let x = -2; x <= 2; x += 1) {
-            for (let y = -2; y <= 2; y += 1) {
-                points.push([x, y]);
-            }
-        }
-        return points;
-    }, []);
+    const setDisp = (m: number[][]) => {
+        dispRef.current = m;
+        setDispState(m);
+    };
 
-    // Transformed grid points
-    const transformedPoints = useMemo(() => {
-        return gridPoints.map(p => applyMatrix(matrix, p));
-    }, [gridPoints, matrix]);
+    const animateTo = (to: number[][]) => {
+        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        const from = dispRef.current.map(r => [...r]);
+        const t0   = performance.now();
 
-    // Basis vectors
-    const e1: [number, number] = [1, 0];
-    const e2: [number, number] = [0, 1];
-    const te1 = applyMatrix(matrix, e1);
-    const te2 = applyMatrix(matrix, e2);
+        const tick = (now: number) => {
+            const rawT = Math.min(1, (now - t0) / DURATION);
+            setDisp(lerpM(from, to, easeInOut(rawT)));
+            if (rawT < 1) rafRef.current = requestAnimationFrame(tick);
+            else rafRef.current = null;
+        };
+        rafRef.current = requestAnimationFrame(tick);
+    };
+
+    useEffect(() => () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); }, []);
+
+    const handleMatrix = (m: number[][]) => {
+        setTarget(m.map(r => [...r]));
+        animateTo(m);
+    };
+
+    /* ── Derived geometry ────────────────────────────────────────────────── */
+
+    const d = det(disp);
+
+    // Origin in SVG
+    const [ox, oy] = sv(0, 0);
+
+    // Unit parallelogram corners: (0,0)→(1,0)→(1,1)→(0,1)
+    const corners: [number, number][] = [[0,0],[1,0],[1,1],[0,1]];
+    const tCorners = corners.map(([x, y]) => tv(disp, x, y));
+    const paraPath = tCorners.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x},${y}`).join(' ') + 'Z';
+
+    // Transformed basis vectors
+    const [te1x, te1y] = tv(disp, 1, 0);
+    const [te2x, te2y] = tv(disp, 0, 1);
+    const [e1x,  e1y]  = sv(1, 0);
+    const [e2x,  e2y]  = sv(0, 1);
+
+    // Color scheme based on determinant
+    const detPositive = d > 0.05;
+    const detNegative = d < -0.05;
+    const paraColor   = detPositive ? '#6366f1' : detNegative ? '#ef4444' : '#94a3b8';
+
+    /* ── Render ──────────────────────────────────────────────────────────── */
 
     return (
-        <div className="p-6 bg-slate-50 rounded-xl border border-slate-200 shadow-sm flex flex-col lg:flex-row gap-6 relative z-10">
-            {/* Controls */}
-            <div className="w-full lg:w-1/3 space-y-6">
+        <div className="flex flex-col lg:flex-row gap-6 p-6 bg-slate-50 rounded-xl border border-slate-200">
+
+            {/* ── Controls panel ── */}
+            <div className="w-full lg:w-60 shrink-0 space-y-4">
                 <div>
-                    <h3 className="text-xl font-bold text-slate-800">Linear Transformation Lab</h3>
-                    <p className="text-sm text-slate-600 mt-2">
-                        Explore how a 2x2 matrix transforms <Latex>{'$\\mathbb{R}^2$'}</Latex>. Adjust the matrix or use presets.
-                    </p>
+                    <h3 className="text-lg font-bold text-slate-800">Linear Transformation Lab</h3>
+                    <p className="text-xs text-slate-500 mt-1">Edit the matrix and watch space morph.</p>
                 </div>
 
-                {/* Matrix Input */}
-                <div className="space-y-4 p-4 bg-white rounded-lg border border-slate-200">
-                    <h4 className="font-semibold text-slate-700 border-b pb-2 mb-2">Transformation Matrix <Latex>{'$[T]$'}</Latex></h4>
-
+                {/* Matrix inputs */}
+                <div className="bg-white rounded-xl border border-slate-200 p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">
+                        Matrix <Latex>{'$[T]$'}</Latex>
+                    </p>
                     <div className="grid grid-cols-2 gap-2">
-                        {[0, 1].map(row => (
-                            [0, 1].map(col => (
-                                <input
-                                    key={`m-${row}-${col}`}
-                                    type="number"
-                                    value={matrix[row][col]}
-                                    onChange={e => {
-                                        const newM = matrix.map(r => [...r]);
-                                        newM[row][col] = parseFloat(e.target.value) || 0;
-                                        setMatrix(newM);
-                                    }}
-                                    className="w-full border rounded px-2 py-1 text-center text-sm font-mono"
-                                    step={0.1}
-                                />
-                            ))
-                        ))}
+                        {[0, 1].map(r => [0, 1].map(c => (
+                            <input
+                                key={`${r}${c}`}
+                                type="number"
+                                value={+target[r][c].toFixed(3)}
+                                onChange={e => {
+                                    const m = target.map(row => [...row]);
+                                    m[r][c] = parseFloat(e.target.value) || 0;
+                                    handleMatrix(m);
+                                }}
+                                className="border border-slate-200 rounded-lg px-2 py-1.5 text-center text-sm font-mono focus:outline-none focus:border-indigo-400"
+                                step={0.1}
+                            />
+                        )))}
                     </div>
                 </div>
 
                 {/* Presets */}
-                <div className="space-y-4 p-4 bg-white rounded-lg border border-slate-200">
-                    <h4 className="font-semibold text-slate-700 border-b pb-2 mb-2">Presets</h4>
-                    <div className="flex flex-wrap gap-2">
-                        {presets.map(preset => (
+                <div className="bg-white rounded-xl border border-slate-200 p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Presets</p>
+                    <div className="flex flex-col gap-1">
+                        {PRESETS.map(p => (
                             <button
-                                key={preset.name}
-                                onClick={() => setMatrix(preset.m)}
-                                className="px-3 py-1 text-xs font-medium bg-indigo-100 text-indigo-700 rounded-full hover:bg-indigo-200 transition-colors"
+                                key={p.label}
+                                onClick={() => handleMatrix(p.m)}
+                                className="w-full text-left px-3 py-1.5 text-sm rounded-lg transition-colors text-slate-600 hover:bg-indigo-50 hover:text-indigo-700"
                             >
-                                {preset.name}
+                                {p.label}
                             </button>
                         ))}
                     </div>
                 </div>
 
-                {/* Info */}
-                <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-100 text-sm text-indigo-800">
-                    <p><strong>Determinant:</strong> {(matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0]).toFixed(2)}</p>
-                    <p className="mt-1 text-xs text-slate-500">A determinant of 0 means the transformation collapses the plane.</p>
+                {/* Determinant card */}
+                <div className={`rounded-xl border p-4 text-sm transition-colors ${
+                    Math.abs(d) < 0.05
+                        ? 'border-slate-200 bg-slate-100 text-slate-600'
+                        : d < 0
+                        ? 'border-rose-200 bg-rose-50 text-rose-800'
+                        : 'border-indigo-100 bg-indigo-50 text-indigo-800'
+                }`}>
+                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-1">Determinant</p>
+                    <p className="text-2xl font-bold font-mono">{d.toFixed(2)}</p>
+                    <p className="text-xs mt-1 opacity-70">
+                        {Math.abs(d) < 0.05
+                            ? 'Collapses space — singular'
+                            : d < 0
+                            ? 'Flips orientation'
+                            : `Area scales by ${d.toFixed(2)}×`}
+                    </p>
                 </div>
             </div>
 
-            {/* Viz */}
-            <div className="flex-1 h-[500px] bg-white rounded-lg overflow-hidden relative border border-slate-200">
-                <Canvas camera={{ position: [0, 0, 8], fov: 45 }} dpr={[1, 2]} gl={{ antialias: true }}>
-                    <color attach="background" args={['#ffffff']} />
-                    <OrbitControls makeDefault />
-                    <ambientLight intensity={0.85} />
-                    <directionalLight position={[5, 8, 5]} intensity={0.7} />
-                    <hemisphereLight args={['#ffffff', '#e2e8f0', 0.5]} />
+            {/* ── SVG canvas ── */}
+            <div className="flex-1 min-h-[480px] bg-white rounded-xl border border-slate-200 overflow-hidden relative">
+                <svg
+                    width="100%"
+                    height="100%"
+                    viewBox={`0 0 ${W} ${H}`}
+                    style={{ display: 'block' }}
+                >
+                    {/* ── Original grid (faint ghost) ── */}
+                    <g opacity="0.22">
+                        {GRID_RANGE.map(y => {
+                            const [x1, y1] = sv(-4.5, y), [x2, y2] = sv(4.5, y);
+                            return (
+                                <line key={`og-h${y}`}
+                                    x1={x1} y1={y1} x2={x2} y2={y2}
+                                    stroke={y === 0 ? '#475569' : '#cbd5e1'}
+                                    strokeWidth={y === 0 ? 1.5 : 0.7}
+                                />
+                            );
+                        })}
+                        {GRID_RANGE.map(x => {
+                            const [x1, y1] = sv(x, -4.5), [x2, y2] = sv(x, 4.5);
+                            return (
+                                <line key={`og-v${x}`}
+                                    x1={x1} y1={y1} x2={x2} y2={y2}
+                                    stroke={x === 0 ? '#475569' : '#cbd5e1'}
+                                    strokeWidth={x === 0 ? 1.5 : 0.7}
+                                />
+                            );
+                        })}
+                    </g>
 
-                    <Grid args={[10, 10]} cellSize={1} cellThickness={0.5} cellColor="#e2e8f0" sectionSize={5} sectionThickness={1} sectionColor="#cbd5e1" fadeDistance={25} />
+                    {/* ── Original basis vectors (dashed, gray) ── */}
+                    <Arrow x1={ox} y1={oy} x2={e1x} y2={e1y} color="#94a3b8" dashed label="e₁" />
+                    <Arrow x1={ox} y1={oy} x2={e2x} y2={e2y} color="#94a3b8" dashed label="e₂" />
 
-                    {/* Original Basis Vectors (dashed) */}
-                    <Line points={[new THREE.Vector3(0, 0, 0), new THREE.Vector3(1, 0, 0)]} color="#64748b" lineWidth={2} dashed dashSize={0.1} gapSize={0.05} />
-                    <Line points={[new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0)]} color="#64748b" lineWidth={2} dashed dashSize={0.1} gapSize={0.05} />
+                    {/* ── Unit parallelogram (det visualization) ── */}
+                    <path d={paraPath} fill={paraColor} opacity={0.13} />
+                    <path d={paraPath} fill="none" stroke={paraColor} strokeWidth={1.5} strokeDasharray="5,3" opacity={0.55} />
 
-                    {/* Transformed Basis Vectors */}
-                    <Arrow start={[0, 0, 0]} end={te1} color="#3b82f6" label="T(e1)" />
-                    <Arrow start={[0, 0, 0]} end={te2} color="#ef4444" label="T(e2)" />
+                    {/* ── Transformed horizontal grid lines (indigo) ── */}
+                    {GRID_RANGE.map(y => {
+                        const [x1, y1] = tv(disp, -4.5, y);
+                        const [x2, y2] = tv(disp,  4.5, y);
+                        const isAxis   = y === 0;
+                        return (
+                            <line key={`th${y}`}
+                                x1={x1} y1={y1} x2={x2} y2={y2}
+                                stroke={isAxis ? '#6366f1' : '#c7d2fe'}
+                                strokeWidth={isAxis ? 2 : 0.85}
+                            />
+                        );
+                    })}
 
-                    {/* Transformed Grid Points */}
-                    {transformedPoints.map((p, i) => (
-                        <mesh key={i} position={p}>
-                            <sphereGeometry args={[0.05, 16, 16]} />
-                            <meshStandardMaterial color="#a855f7" />
-                        </mesh>
-                    ))}
+                    {/* ── Transformed vertical grid lines (rose) ── */}
+                    {GRID_RANGE.map(x => {
+                        const [x1, y1] = tv(disp, x, -4.5);
+                        const [x2, y2] = tv(disp, x,  4.5);
+                        const isAxis   = x === 0;
+                        return (
+                            <line key={`tv${x}`}
+                                x1={x1} y1={y1} x2={x2} y2={y2}
+                                stroke={isAxis ? '#e11d48' : '#fecdd3'}
+                                strokeWidth={isAxis ? 2 : 0.85}
+                            />
+                        );
+                    })}
 
-                </Canvas>
-                <div className="absolute bottom-4 left-4 text-xs text-slate-600 pointer-events-none bg-white/80 rounded px-2 py-1 shadow-sm backdrop-blur">
-                    <p><span className="text-blue-600">Blue: T(e1)</span>, <span className="text-red-500">Red: T(e2)</span>, <span className="text-purple-500">Purple: Transformed grid</span></p>
+                    {/* ── Transformed basis vectors ── */}
+                    <Arrow x1={ox} y1={oy} x2={te1x} y2={te1y} color="#6366f1" label="T(e₁)" width={3} />
+                    <Arrow x1={ox} y1={oy} x2={te2x} y2={te2y} color="#e11d48" label="T(e₂)" width={3} />
+
+                    {/* ── Det label inside parallelogram ── */}
+                    {Math.abs(d) > 0.2 && (() => {
+                        // Centroid of the parallelogram
+                        const cx = tCorners.reduce((s, [x]) => s + x, 0) / 4;
+                        const cy = tCorners.reduce((s, [, y]) => s + y, 0) / 4;
+                        return (
+                            <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle"
+                                fill={paraColor} fontSize={11} fontWeight="700" opacity={0.8}>
+                                {d.toFixed(2)}
+                            </text>
+                        );
+                    })()}
+
+                    {/* ── Origin dot ── */}
+                    <circle cx={ox} cy={oy} r={4} fill="#1e293b" />
+                </svg>
+
+                {/* Legend */}
+                <div className="absolute bottom-3 left-3 flex items-center gap-3 text-[11px] bg-white/90 rounded-lg px-3 py-1.5 border border-slate-100 pointer-events-none">
+                    <span className="text-slate-400">ghost = original</span>
+                    <span className="text-indigo-500 font-medium">— T(horizontal)</span>
+                    <span className="text-rose-500 font-medium">— T(vertical)</span>
+                    <span style={{ color: paraColor }} className="font-medium">▪ det</span>
                 </div>
             </div>
         </div>

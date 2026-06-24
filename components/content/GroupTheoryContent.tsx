@@ -1,687 +1,1087 @@
 "use client";
 
 import React from 'react';
-import Latex from 'react-latex-next';
 import 'katex/dist/katex.min.css';
+import Latex from 'react-latex-next';
+import { BookOpen, Shapes, Code2, Dumbbell, ListChecks } from 'lucide-react';
+import Tabs from '@/components/ui/Tabs';
+import ConceptStepper from '@/components/ui/ConceptStepper';
+import Intuition from '@/components/ui/Intuition';
+import Callout from '@/components/ui/Callout';
+import CodeBlock from '@/components/ui/CodeBlock';
+import Quiz, { QuizQuestion } from '@/components/ui/Quiz';
+import CodingExercise from '@/components/ui/CodingExercise';
 
-export function BasicGroupConcepts() {
+const conceptIcon   = <BookOpen size={15} />;
+const visualizeIcon = <Shapes   size={15} />;
+const codeIcon      = <Code2    size={15} />;
+const exerciseIcon  = <Dumbbell size={15} />;
+const quizIcon      = <ListChecks size={15} />;
+
+function Card({ title, children }: { title: React.ReactNode; children: React.ReactNode }) {
     return (
-        <div className="prose prose-slate max-w-none">
-            <h2 className="text-2xl font-bold text-indigo-700 border-b-2 border-indigo-200 pb-2 mb-4">
-                Basic Concepts of Group Theory
-            </h2>
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
+            <h2 className="mb-4 text-xl font-bold tracking-tight text-[var(--foreground)]">{title}</h2>
+            {children}
+        </section>
+    );
+}
 
-            <p>
-                Group theory is a branch of abstract algebra that studies algebraic structures known
-                as groups. Groups are fundamental in understanding the concept of symmetry in
-                mathematics, physics, and various other disciplines, including the study of neural
-                networks and transformers. A group <Latex>{'$G$'}</Latex> is a set equipped with a binary operation <Latex>{'$\\cdot$'}</Latex>
-                (often called multiplication) that combines any two elements <Latex>{'$a$'}</Latex> and <Latex>{'$b$'}</Latex> in <Latex>{'$G$'}</Latex> to form
-                another element <Latex>{'$a \\cdot b$'}</Latex> in <Latex>{'$G$'}</Latex>. The group operation must satisfy the following axioms:
-            </p>
+function Reading({ children }: { children: React.ReactNode }) {
+    return (
+        <article className="prose prose-slate" style={{ maxWidth: 'none' }}>
+            {children}
+        </article>
+    );
+}
 
-            <div className="bg-slate-50 p-6 rounded-lg my-6 border border-slate-200">
-                <ol className="list-decimal list-inside space-y-3 text-slate-800">
-                    <li>
-                        <strong>Closure:</strong> For all <Latex>{'$a, b \\in G$'}</Latex>, the product <Latex>{'$a \\cdot b \\in G$'}</Latex>.
-                    </li>
-                    <li>
-                        <strong>Associativity:</strong> For all <Latex>{'$a, b, c \\in G$'}</Latex>, <Latex>{'$(a \\cdot b) \\cdot c = a \\cdot (b \\cdot c)$'}</Latex>.
-                    </li>
-                    <li>
-                        <strong>Identity Element:</strong> There exists an element <Latex>{'$e \\in G$'}</Latex> such that for all <Latex>{'$a \\in G$'}</Latex>,
-                        <Latex>{'$e \\cdot a = a \\cdot e = a$'}</Latex>. This element <Latex>{'$e$'}</Latex> is called the identity element of the group.
-                    </li>
-                    <li>
-                        <strong>Inverse Element:</strong> For each <Latex>{'$a \\in G$'}</Latex>, there exists an element <Latex>{'$a^{-1} \\in G$'}</Latex> such that
-                        <Latex>{'$a \\cdot a^{-1} = a^{-1} \\cdot a = e$'}</Latex>, where <Latex>{'$e$'}</Latex> is the identity element.
-                    </li>
-                </ol>
-            </div>
-
-            <p>
-                The study of groups is motivated by the need to understand symmetry in a structured way.
-                For example, the set of all rotations of a regular polygon forms a group
-                under the operation of composition, reflecting the symmetrical properties of the
-                shape. This group encapsulates the geometric symmetries of the polygon and allows
-                for a deep understanding of how these symmetries interact.
-            </p>
+function FormulaBox({ children }: { children: React.ReactNode }) {
+    return (
+        <div className="bg-[var(--surface-2)] p-4 rounded-lg my-4 text-center border border-[var(--border)]">
+            {children}
         </div>
     );
 }
 
-export function GroupsSubgroupsCosets() {
+function TheoremBox({ title, children }: { title: string; children: React.ReactNode }) {
     return (
-        <div className="prose prose-slate max-w-none">
-            <h2 className="text-2xl font-bold text-indigo-700 border-b-2 border-indigo-200 pb-2 mb-4">
-                Groups, Subgroups, and Cosets
-            </h2>
-
-            {/* ─── Subgroup Definition ─── */}
-            <p>
-                A subgroup <Latex>{'$H$'}</Latex> of a group <Latex>{'$G$'}</Latex> is a subset
-                of <Latex>{'$G$'}</Latex> that is itself a group under the operation
-                of <Latex>{'$G$'}</Latex>. Formally, <Latex>{'$H \\subseteq G$'}</Latex> is a subgroup if it satisfies the following conditions:
-            </p>
-
-            <div className="bg-slate-50 p-6 rounded-lg my-6 border border-slate-200">
-                <ol className="list-decimal list-inside space-y-3 text-slate-800">
-                    <li>
-                        The <strong>identity element</strong> of <Latex>{'$G$'}</Latex> is in <Latex>{'$H$'}</Latex>.
-                    </li>
-                    <li>
-                        <Latex>{'$H$'}</Latex> is <strong>closed under the group operation</strong>: For all <Latex>{'$h_1, h_2 \\in H$'}</Latex>, <Latex>{'$h_1 \\cdot h_2 \\in H$'}</Latex>.
-                    </li>
-                    <li>
-                        <Latex>{'$H$'}</Latex> is <strong>closed under taking inverses</strong>: For all <Latex>{'$h \\in H$'}</Latex>, <Latex>{'$h^{-1} \\in H$'}</Latex>.
-                    </li>
-                </ol>
-            </div>
-
-            <p>
-                Subgroups are important because they inherit the algebraic structure of the larger
-                group and often reveal the internal symmetries of the group. For example, the set
-                of all rotations of a cube that leave a given face fixed forms a subgroup of the full
-                rotation group of the cube. This subgroup reflects the symmetry of the cube with
-                respect to that particular face.
-            </p>
-
-            {/* ─── Cosets ─── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                Cosets and Group Partitioning
-            </h3>
-
-            <p>
-                Given a subgroup <Latex>{'$H$'}</Latex> of a group <Latex>{'$G$'}</Latex>, one can
-                form <strong>cosets</strong> of <Latex>{'$H$'}</Latex> in <Latex>{'$G$'}</Latex>. A <strong>left coset</strong> of <Latex>{'$H$'}</Latex> in <Latex>{'$G$'}</Latex> is
-                a set of the form:
-            </p>
-
-            <div className="bg-slate-50 p-4 rounded-lg my-4 border border-slate-200 text-center">
-                <Latex>{'$gH = \\{g \\cdot h \\mid h \\in H\\}$'}</Latex>
-            </div>
-
-            <p>
-                for some <Latex>{'$g \\in G$'}</Latex>. Similarly, a <strong>right coset</strong> is a set of the form <Latex>{'$Hg = \\{h \\cdot g \\mid h \\in H\\}$'}</Latex>. Cosets partition the group <Latex>{'$G$'}</Latex> into disjoint subsets,
-                each of which is a translation of the subgroup <Latex>{'$H$'}</Latex> by some element
-                of <Latex>{'$G$'}</Latex>. The number of distinct cosets of <Latex>{'$H$'}</Latex> in <Latex>{'$G$'}</Latex> is
-                called the <strong>index</strong> of <Latex>{'$H$'}</Latex> in <Latex>{'$G$'}</Latex> and is
-                denoted by <Latex>{'$[G : H]$'}</Latex>.
-            </p>
-
-            {/* ─── Lagrange's Theorem ─── */}
-            <div className="bg-amber-50 border-l-4 border-amber-400 p-5 my-6">
-                <p className="font-semibold text-amber-800 mb-2">Lagrange&apos;s Theorem</p>
-                <p className="text-sm text-amber-900 mb-3">
-                    A fundamental result in group theory states that the order of any finite
-                    subgroup <Latex>{'$H$'}</Latex> of a finite group <Latex>{'$G$'}</Latex> divides the order
-                    of <Latex>{'$G$'}</Latex>:
-                </p>
-                <div className="text-center my-2">
-                    <Latex>{'$|G| = |H| \\times [G : H]$'}</Latex>
-                </div>
-                <p className="text-sm text-amber-900 mt-3">
-                    This theorem can be understood through cosets: the group <Latex>{'$G$'}</Latex> is perfectly
-                    tiled by equal-sized cosets of <Latex>{'$H$'}</Latex>, so the number of elements
-                    in <Latex>{'$G$'}</Latex> equals the number of elements in <Latex>{'$H$'}</Latex> multiplied
-                    by the number of cosets.
-                </p>
-            </div>
-
-            {/* ─── Quotient Groups ─── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                Quotient Groups
-            </h3>
-
-            <p>
-                Cosets also play a significant role in the construction of <strong>quotient groups</strong>,
-                which are groups formed by &ldquo;collapsing&rdquo; a <strong>normal subgroup</strong> <Latex>{'$N$'}</Latex> of <Latex>{'$G$'}</Latex> to
-                the identity element. A subgroup <Latex>{'$N$'}</Latex> is <em>normal</em> if <Latex>{'$gNg^{-1} = N$'}</Latex> for
-                all <Latex>{'$g \\in G$'}</Latex>.
-            </p>
-
-            <div className="bg-indigo-50 border-l-4 border-indigo-400 p-4 my-6">
-                <p className="font-semibold text-indigo-800 mb-2">Quotient Group <Latex>{'$G/N$'}</Latex></p>
-                <p className="text-sm text-indigo-900">
-                    The quotient group <Latex>{'$G/N$'}</Latex> consists of the cosets
-                    of <Latex>{'$N$'}</Latex> in <Latex>{'$G$'}</Latex>, and it inherits the group structure
-                    from <Latex>{'$G$'}</Latex>. The operation is defined
-                    as <Latex>{'$(g_1 N)(g_2 N) = (g_1 \\cdot g_2)N$'}</Latex>. Quotient groups are essential in
-                    understanding how larger groups can be decomposed into simpler components,
-                    a theme central to the study of symmetry and intelligence in mathematical systems.
-                </p>
-            </div>
-
-            {/* ─── ML Applications ─── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                Applications in Machine Learning
-            </h3>
-
-            <p>
-                In the context of machine learning, groups, subgroups, and cosets can be used to
-                model the symmetries present in data. For example, in <strong>computer vision</strong>, the symmetries of an
-                object under rotation and translation can be represented by a group, and the subgroup
-                structure can reveal invariant features of the object.
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
-                <div className="bg-emerald-50 border-l-4 border-emerald-400 p-4">
-                    <h4 className="font-bold text-emerald-800 mb-2 text-sm">Symmetry in Data</h4>
-                    <p className="text-xs text-emerald-900">
-                        Object recognition benefits from encoding rotational and translational
-                        symmetries. The subgroup of rotations that preserve an object&apos;s appearance
-                        reveals features that are <em>invariant</em> to those transformations.
-                    </p>
-                </div>
-                <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
-                    <h4 className="font-bold text-blue-800 mb-2 text-sm">Transformers &amp; Hierarchies</h4>
-                    <p className="text-xs text-blue-900">
-                        Transformers, with their ability to capture hierarchical structures, can be
-                        seen as exploiting group symmetries to efficiently process and transform
-                        data. Coset decompositions mirror how attention layers decompose
-                        representations into meaningful subspaces.
-                    </p>
-                </div>
-            </div>
+        <div className="bg-amber-50 border-l-4 border-amber-400 p-5 my-6 rounded-r-xl">
+            <p className="font-semibold text-amber-800 mb-2">{title}</p>
+            <div className="text-sm text-amber-900">{children}</div>
         </div>
     );
 }
 
-export function GroupHomomorphisms() {
+/* ── Quiz & Exercise data ── */
+
+const AXIOMS_QUIZ: QuizQuestion[] = [
+    {
+        question: 'Which axiom guarantees combining two group elements produces another group element?',
+        options: ['Associativity', 'Closure', 'Identity', 'Inverse'],
+        answer: 1,
+        explanation: 'The closure axiom states that for all $a, b \\in G$, the product $a \\cdot b$ is also in $G$.',
+    },
+    {
+        question: 'Which set is NOT a group under the usual operation?',
+        options: [
+            'Integers under addition',
+            'Non-zero reals under multiplication',
+            'All $2 \\times 2$ matrices under multiplication',
+            'Rotations of a square under composition',
+        ],
+        answer: 2,
+        explanation: 'Not all $2\\times2$ matrices are invertible (e.g., zero matrix). You must exclude singular matrices to form $GL_2(\\mathbb{R})$.',
+    },
+];
+
+const AXIOMS_EXERCISE = {
+    starter: `def is_group(elements, op):
+    """
+    Return True if (elements, op) satisfies all four group axioms.
+    op(a, b) returns the result of combining a and b.
+    """
+    # TODO: check closure, associativity, identity, inverse
+    pass
+`,
+    checks: `elements = [0, 1, 2, 3]
+op = lambda a, b: (a + b) % 4
+result = is_group(elements, op)
+_check("Z_4 is a group", lambda: result == True)
+
+elements2 = [0, 1, 2]
+op2 = lambda a, b: (a * b) % 3
+result2 = is_group(elements2, op2)
+_check("{0,1,2} under mult is not a group", lambda: result2 == False)
+`,
+    solution: `def is_group(elements, op):
+    elem_set = set(elements)
+    for a in elements:
+        for b in elements:
+            if op(a, b) not in elem_set:
+                return False
+    for a in elements:
+        for b in elements:
+            for c in elements:
+                if op(op(a, b), c) != op(a, op(b, c)):
+                    return False
+    identity = None
+    for e in elements:
+        if all(op(e, a) == a and op(a, e) == a for a in elements):
+            identity = e
+            break
+    if identity is None:
+        return False
+    for a in elements:
+        if not any(op(a, b) == identity for b in elements):
+            return False
+    return True
+`,
+};
+
+const SUBGROUP_QUIZ: QuizQuestion[] = [
+    {
+        question: "Lagrange's Theorem states that for finite group $G$ with subgroup $H$:",
+        options: ['$|H|$ must equal $|G|/2$', '$|H|$ divides $|G|$', '$|G|$ divides $|H|$', '$|H| = \\sqrt{|G|}$'],
+        answer: 1,
+        explanation: "Lagrange's Theorem: $|G| = |H| \\times [G:H]$, so $|H|$ divides $|G|$.",
+    },
+    {
+        question: 'Left cosets $gH$ of subgroup $H$ in $G$:',
+        options: ['May overlap', 'Always equal $H$', 'Partition $G$ into disjoint equal-sized subsets', 'Are always subgroups'],
+        answer: 2,
+        explanation: 'Cosets are either identical or disjoint, covering all of $G$, each of size $|H|$.',
+    },
+];
+
+const SUBGROUP_EXERCISE = {
+    starter: `def left_cosets(n, subgroup):
+    """
+    Compute left cosets of subgroup H in Z_n.
+    Returns: list of sorted cosets.
+    """
+    # TODO: compute left cosets gH for each g in Z_n
+    pass
+`,
+    checks: `cosets = left_cosets(6, [0, 2, 4])
+_check("returns 2 cosets", lambda: len(cosets) == 2)
+_check("cosets cover all elements", lambda: set(e for c in cosets for e in c) == {0,1,2,3,4,5})
+
+cosets2 = left_cosets(12, [0, 4, 8])
+_check("Z_12 / {0,4,8} has 4 cosets", lambda: len(cosets2) == 4)
+`,
+    solution: `def left_cosets(n, subgroup):
+    visited = set()
+    cosets = []
+    for g in range(n):
+        if g in visited:
+            continue
+        coset = sorted(set((g + h) % n for h in subgroup))
+        for el in coset:
+            visited.add(el)
+        cosets.append(coset)
+    return cosets
+`,
+};
+
+const HOMO_QUIZ: QuizQuestion[] = [
+    {
+        question: 'A group homomorphism $\\varphi: G \\to H$ satisfies:',
+        options: ['$\\varphi(a + b) = \\varphi(a) \\times \\varphi(b)$', '$\\varphi(a \\cdot b) = \\varphi(a) \\cdot \\varphi(b)$', '$\\varphi(a) = \\varphi(b)$ for all $a,b$', '$\\varphi(e_G) = e_H + 1$'],
+        answer: 1,
+        explanation: 'A homomorphism preserves the group operation: $\\varphi(a \\cdot b) = \\varphi(a) \\cdot \\varphi(b)$.',
+    },
+    {
+        question: 'The kernel of $\\varphi: G \\to H$ is:',
+        options: ['The image of $\\varphi$', 'Elements of $H$ that are reached', 'Elements of $G$ mapping to the identity of $H$', 'Always equal to $G$'],
+        answer: 2,
+        explanation: '$\\ker(\\varphi) = \\{g \\in G \\mid \\varphi(g) = e_H\\}$. Always a normal subgroup of $G$.',
+    },
+];
+
+const HOMO_EXERCISE = {
+    starter: `def is_homomorphism(n_domain, n_codomain, phi):
+    """Check phi is a group homomorphism from Z_n_domain to Z_n_codomain."""
+    # TODO: verify phi(a+b) = phi(a)+phi(b) mod n for all a,b
+    pass
+
+def kernel(n, phi):
+    """Return elements of Z_n that map to 0 under phi."""
+    # TODO: return list of elements mapping to identity
+    pass
+`,
+    checks: `phi_mod3 = lambda x: x % 3
+_check("x mod 3 is homomorphism Z6->Z3", lambda: is_homomorphism(6, 3, phi_mod3) == True)
+
+ker = kernel(6, phi_mod3)
+_check("kernel is {0,3}", lambda: sorted(ker) == [0, 3])
+
+phi_not = lambda x: (x + 1) % 3
+_check("x+1 mod 3 is not a homomorphism", lambda: is_homomorphism(6, 3, phi_not) == False)
+`,
+    solution: `def is_homomorphism(n_domain, n_codomain, phi):
+    for a in range(n_domain):
+        for b in range(n_domain):
+            if phi((a + b) % n_domain) % n_codomain != (phi(a) + phi(b)) % n_codomain:
+                return False
+    return True
+
+def kernel(n, phi):
+    return [a for a in range(n) if phi(a) % n == 0]
+`,
+};
+
+const REP_QUIZ: QuizQuestion[] = [
+    {
+        question: 'A representation of group $G$ is a homomorphism $\\rho: G \\to ?$',
+        options: ['$\\mathbb{R}$', '$\\text{GL}(V)$ — group of invertible linear maps on a vector space', '$G$ itself', 'The symmetric group $S_n$'],
+        answer: 1,
+        explanation: 'A representation maps group elements to invertible matrices, preserving group structure: $\\rho(g_1 g_2) = \\rho(g_1)\\rho(g_2)$.',
+    },
+    {
+        question: 'The 1D representations of cyclic group $C_n$ are:',
+        options: ['$\\rho_k(g^j) = j$', '$\\rho_k(g^j) = e^{2\\pi i jk/n}$', '$\\rho_k(g^j) = k$', '$\\rho_k(g^j) = 0$ unless $j=0$'],
+        answer: 1,
+        explanation: 'The $n$ distinct 1D irreps of $C_n$ send the generator $g$ to $\\omega^k$ where $\\omega = e^{2\\pi i/n}$.',
+    },
+];
+
+const REP_EXERCISE = {
+    starter: `import numpy as np
+
+def cyclic_rep(n, k, j):
+    """
+    Compute rho_k(g^j) = e^(2*pi*i*j*k/n) for cyclic group C_n.
+    """
+    # TODO: return the complex value
+    pass
+
+def verify_homomorphism_property(n, k):
+    """Verify rho_k(g^a * g^b) = rho_k(g^a) * rho_k(g^b) for all a,b."""
+    # TODO: check multiplication property
+    pass
+`,
+    checks: `_check("rho_0 is trivial", lambda: abs(cyclic_rep(4, 0, 1) - 1.0) < 1e-9)
+_check("rho_1(g^1) = i for C4", lambda: abs(cyclic_rep(4, 1, 1) - 1j) < 1e-9)
+_check("rho_1(g^2) = -1 for C4", lambda: abs(cyclic_rep(4, 1, 2) - (-1)) < 1e-9)
+_check("homomorphism property holds", lambda: verify_homomorphism_property(6, 2) == True)
+`,
+    solution: `import numpy as np
+
+def cyclic_rep(n, k, j):
+    return np.exp(2j * np.pi * j * k / n)
+
+def verify_homomorphism_property(n, k):
+    for a in range(n):
+        for b in range(n):
+            if abs(cyclic_rep(n, k, (a+b)%n) - cyclic_rep(n,k,a)*cyclic_rep(n,k,b)) > 1e-9:
+                return False
+    return True
+`,
+};
+
+const CHAR_QUIZ: QuizQuestion[] = [
+    {
+        question: 'The character $\\chi(g)$ of a representation $\\rho$ is:',
+        options: ['$\\det(\\rho(g))$', '$\\text{Tr}(\\rho(g))$', '$\\|\\rho(g)\\|$', '$\\rho(g)^{-1}$'],
+        answer: 1,
+        explanation: 'The character $\\chi(g) = \\text{Tr}(\\rho(g))$ is the trace of the representing matrix. Constant on conjugacy classes.',
+    },
+    {
+        question: 'Row orthogonality of irreducible characters states:',
+        options: [
+            '$\\sum_{g} \\chi_i(g) = 0$ always',
+            '$\\frac{1}{|G|} \\sum_{g} \\chi_i(g)\\overline{\\chi_j(g)} = \\delta_{ij}$',
+            '$\\chi_i(g) = \\chi_j(g)$ for all $g$',
+            '$\\sum_i \\chi_i(g) = |G|$',
+        ],
+        answer: 1,
+        explanation: 'Irreps form an orthonormal basis: $\\langle \\chi_i, \\chi_j \\rangle = \\delta_{ij}$.',
+    },
+];
+
+const CHAR_EXERCISE = {
+    starter: `import numpy as np
+
+S3_CHARS = np.array([[1, 1, 1], [1, -1, 1], [2, 0, -1]])
+CLASS_SIZES = np.array([1, 3, 2])
+ORDER = 6
+
+def inner_product(chi_i, chi_j, class_sizes, group_order):
+    """<chi_i, chi_j> = (1/|G|) sum_c |c| chi_i(c) conj(chi_j(c))"""
+    # TODO: compute inner product
+    pass
+
+def check_orthogonality(char_table, class_sizes, order):
+    """Return the Gram matrix gram[i][j] = <chi_i, chi_j>."""
+    # TODO: build the Gram matrix
+    pass
+`,
+    checks: `ip = inner_product(S3_CHARS[0], S3_CHARS[0], CLASS_SIZES, ORDER)
+_check("<chi_0, chi_0> = 1", lambda: abs(ip - 1.0) < 1e-9)
+
+ip2 = inner_product(S3_CHARS[0], S3_CHARS[1], CLASS_SIZES, ORDER)
+_check("<chi_0, chi_1> = 0", lambda: abs(ip2) < 1e-9)
+
+gram = check_orthogonality(S3_CHARS, CLASS_SIZES, ORDER)
+_check("Gram matrix is identity", lambda: np.allclose(gram, np.eye(3)))
+`,
+    solution: `import numpy as np
+
+def inner_product(chi_i, chi_j, class_sizes, group_order):
+    return np.real(np.sum(class_sizes * chi_i * np.conj(chi_j))) / group_order
+
+def check_orthogonality(char_table, class_sizes, order):
+    n = len(char_table)
+    return np.array([[inner_product(char_table[i], char_table[j], class_sizes, order)
+                      for j in range(n)] for i in range(n)])
+`,
+};
+
+const APPS_QUIZ: QuizQuestion[] = [
+    {
+        question: 'Standard self-attention in transformers is:',
+        options: [
+            'Invariant to input permutations',
+            'Equivariant to input permutations',
+            'Neither invariant nor equivariant',
+            'Only for fixed-length sequences',
+        ],
+        answer: 1,
+        explanation: 'Self-attention is permutation equivariant: permuting input tokens correspondingly permutes outputs.',
+    },
+    {
+        question: 'A layer $f$ is equivariant under group $G$ if:',
+        options: ['$f(g \\cdot x) = f(x)$', '$f(g \\cdot x) = g \\cdot f(x)$', '$f(x) = g$', '$f(g \\cdot x) = g^{-1} \\cdot f(x)$'],
+        answer: 1,
+        explanation: 'Equivariance: $f(g \\cdot x) = g \\cdot f(x)$. Invariance would be $f(g \\cdot x) = f(x)$.',
+    },
+];
+
+const APPS_EXERCISE = {
+    starter: `import numpy as np
+
+def is_permutation_equivariant(f, n_tokens, n_trials=50):
+    """
+    Test if f: R^(n_tokens x 2) -> R^(n_tokens x 2) is permutation equivariant.
+    Check f(Px) = P f(x) for random permutations P.
+    """
+    # TODO: test equivariance with random inputs and permutations
+    pass
+
+def row_linear(x):
+    W = np.array([[2.0, -1.0], [0.5, 1.5]])
+    return x @ W.T
+
+def mean_pooled(x):
+    return np.tile(x.mean(axis=0), (x.shape[0], 1))
+`,
+    checks: `_check("row_linear is equivariant", lambda: is_permutation_equivariant(row_linear, 4))
+_check("mean_pooled is not equivariant", lambda: not is_permutation_equivariant(mean_pooled, 4))
+`,
+    solution: `import numpy as np
+
+def is_permutation_equivariant(f, n_tokens, n_trials=50):
+    rng = np.random.default_rng(42)
+    for _ in range(n_trials):
+        x = rng.standard_normal((n_tokens, 2))
+        perm = rng.permutation(n_tokens)
+        if not np.allclose(f(x)[perm], f(x[perm]), atol=1e-9):
+            return False
+    return True
+`,
+};
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Exported content components
+   ════════════════════════════════════════════════════════════════════════════ */
+
+type BasicConceptsProps = {
+    groupAxiomsLab?: React.ReactNode;
+    subgroupLab?: React.ReactNode;
+    homomorphismLab?: React.ReactNode;
+};
+
+export function BasicConceptsContent({ groupAxiomsLab, subgroupLab, homomorphismLab }: BasicConceptsProps) {
     return (
-        <div className="prose prose-slate max-w-none">
-            <h2 className="text-2xl font-bold text-indigo-700 border-b-2 border-indigo-200 pb-2 mb-4">
-                Group Homomorphisms
-            </h2>
+        <div className="space-y-10">
+            <Card title="Group Axioms">
+                <Tabs tabs={[
+                    {
+                        id: 'concept', label: 'Concept', icon: conceptIcon,
+                        content: (
+                            <ConceptStepper steps={[
+                                {
+                                    label: 'What is a Group?',
+                                    content: (
+                                        <div>
+                                            <Intuition>
+                                                Think of a group as a collection of symmetry operations that can be combined, reversed, and always include a do-nothing option. Rotating a triangle, shuffling cards, adding numbers — these are all the same mathematical structure.
+                                            </Intuition>
+                                            <Reading>
+                                                <p>
+                                                    A <strong>group</strong> <Latex>{'$(G, \\cdot)$'}</Latex> is a set <Latex>{'$G$'}</Latex> equipped with a binary operation
+                                                    that combines any two elements to produce another. Groups are the mathematical language of symmetry.
+                                                </p>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    label: 'The Four Axioms',
+                                    content: (
+                                        <div>
+                                            <Reading>
+                                                <div className="bg-[var(--surface-2)] p-5 rounded-xl my-4 border border-[var(--border)] space-y-3">
+                                                    <div className="border-l-4 border-indigo-400 pl-4">
+                                                        <p className="font-bold text-sm">1. Closure</p>
+                                                        <Latex>{'$\\forall a, b \\in G :\; a \\cdot b \\in G$'}</Latex>
+                                                    </div>
+                                                    <div className="border-l-4 border-violet-400 pl-4">
+                                                        <p className="font-bold text-sm">2. Associativity</p>
+                                                        <Latex>{'$(a \\cdot b) \\cdot c = a \\cdot (b \\cdot c)$'}</Latex>
+                                                    </div>
+                                                    <div className="border-l-4 border-emerald-400 pl-4">
+                                                        <p className="font-bold text-sm">3. Identity</p>
+                                                        <Latex>{'$\\exists e \\in G :\; e \\cdot a = a \\cdot e = a$'}</Latex>
+                                                    </div>
+                                                    <div className="border-l-4 border-rose-400 pl-4">
+                                                        <p className="font-bold text-sm">4. Inverse</p>
+                                                        <Latex>{'$\\forall a \\in G,\; \\exists a^{-1} :\; a \\cdot a^{-1} = e$'}</Latex>
+                                                    </div>
+                                                </div>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    label: 'Examples',
+                                    content: (
+                                        <div>
+                                            <Reading>
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 my-4">
+                                                    <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-4">
+                                                        <p className="font-bold text-sm mb-1">Integers under addition</p>
+                                                        <p className="text-xs text-[var(--muted)]"><Latex>{'$(\\mathbb{Z}, +)$'}</Latex>: identity = 0, inverse of <Latex>{'$n$'}</Latex> is <Latex>{'$-n$'}</Latex>.</p>
+                                                    </div>
+                                                    <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-4">
+                                                        <p className="font-bold text-sm mb-1">Triangle symmetries</p>
+                                                        <p className="text-xs text-[var(--muted)]"><Latex>{'$D_3$'}</Latex>: 6 symmetries (3 rotations + 3 reflections).</p>
+                                                    </div>
+                                                    <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-4">
+                                                        <p className="font-bold text-sm mb-1">Permutations</p>
+                                                        <p className="text-xs text-[var(--muted)]"><Latex>{'$S_n$'}</Latex>: all reorderings of <Latex>{'$n$'}</Latex> objects. <Latex>{'$|S_n|=n!$'}</Latex></p>
+                                                    </div>
+                                                </div>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                            ]} />
+                        ),
+                    },
+                    { id: 'visualize', label: 'Visualize', icon: visualizeIcon, content: groupAxiomsLab },
+                    {
+                        id: 'code', label: 'Code', icon: codeIcon,
+                        content: (
+                            <Reading>
+                                <CodeBlock title="group_axioms.py" runnable code={`D3 = {
+    'e':  [0, 1, 2],
+    'r':  [2, 0, 1],
+    'r2': [1, 2, 0],
+    's1': [0, 2, 1],
+    's2': [2, 1, 0],
+    's3': [1, 0, 2],
+}
 
-            {/* ─── Definition ─── */}
-            <p>
-                A <strong>group homomorphism</strong> is a function between two groups that preserves the group
-                structure. Formally, if <Latex>{'$G$'}</Latex> and <Latex>{'$H$'}</Latex> are groups, a homomorphism from <Latex>{'$G$'}</Latex> to <Latex>{'$H$'}</Latex> is a
-                function <Latex>{'$\\varphi : G \\to H$'}</Latex> such that for all <Latex>{'$a, b \\in G$'}</Latex>,
-            </p>
+def compose(a, b):
+    return [b[a[i]] for i in range(3)]
 
-            <div className="bg-slate-50 p-4 rounded-lg my-4 border border-slate-200 text-center">
-                <Latex>{'$\\varphi(a \\cdot b) = \\varphi(a) \\cdot \\varphi(b)$'}</Latex>
-            </div>
+def find_op(perm, group):
+    for name, p in group.items():
+        if p == perm:
+            return name
 
-            <p>
-                where <Latex>{'$\\cdot$'}</Latex> denotes the group operation in <Latex>{'$G$'}</Latex> and in <Latex>{'$H$'}</Latex>.
-                The property of preserving the group operation means that the image of a product under the
-                homomorphism is the product of the images. This preservation of structure makes homomorphisms
-                a central concept in the study of groups, as they allow for the comparison and classification
-                of groups based on their structural similarities.
-            </p>
+perms = list(D3.values())
+for p1 in perms:
+    for p2 in perms:
+        result = compose(p1, p2)
+        assert result in perms
 
-            {/* ─── Isomorphisms ─── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                Isomorphisms
-            </h3>
+print("D3 is closed under composition")
+print("Order:", len(D3))
 
-            <p>
-                A homomorphism that is both <strong>injective</strong> (one-to-one) and <strong>surjective</strong> (onto) is called
-                an <strong>isomorphism</strong>. If there exists an isomorphism between two groups <Latex>{'$G$'}</Latex> and <Latex>{'$H$'}</Latex>,
-                then <Latex>{'$G$'}</Latex> and <Latex>{'$H$'}</Latex> are said to be <em>isomorphic</em>, denoted <Latex>{'$G \\cong H$'}</Latex>.
-                Isomorphic groups are structurally identical, meaning they have the same group-theoretic
-                properties, though their elements may be different.
-            </p>
+pairs = [('r', 's1'), ('s1', 'r'), ('r', 'r2')]
+for a_name, b_name in pairs:
+    c = compose(D3[a_name], D3[b_name])
+    print(f"{a_name} o {b_name} = {find_op(c, D3)}")
+`} />
+                            </Reading>
+                        ),
+                    },
+                    {
+                        id: 'exercise', label: 'Exercise', icon: exerciseIcon,
+                        content: (
+                            <CodingExercise bare title="Exercise: Verify Group Axioms"
+                                prompt="Implement a function that checks whether a finite set with a binary operation satisfies all four group axioms."
+                                starterCode={AXIOMS_EXERCISE.starter}
+                                checks={AXIOMS_EXERCISE.checks}
+                                solution={AXIOMS_EXERCISE.solution}
+                            />
+                        ),
+                    },
+                    { id: 'quiz', label: 'Quiz', icon: quizIcon, content: <Quiz bare questions={AXIOMS_QUIZ} title="Check: Group Axioms" /> },
+                ]} />
+            </Card>
 
-            <div className="bg-violet-50 border-l-4 border-violet-400 p-4 my-6">
-                <p className="font-semibold text-violet-800 mb-2">Types of Homomorphisms</p>
-                <ul className="text-sm text-violet-900 space-y-1 list-disc list-inside">
-                    <li><strong>Monomorphism:</strong> Injective homomorphism (different inputs → different outputs)</li>
-                    <li><strong>Epimorphism:</strong> Surjective homomorphism (every element in <Latex>{'$H$'}</Latex> is reached)</li>
-                    <li><strong>Isomorphism:</strong> Both injective and surjective — a perfect structural match</li>
-                    <li><strong>Endomorphism:</strong> A homomorphism from a group to itself</li>
-                    <li><strong>Automorphism:</strong> An isomorphism from a group to itself</li>
-                </ul>
-            </div>
+            <Card title="Subgroups &amp; Cosets">
+                <Tabs tabs={[
+                    {
+                        id: 'concept', label: 'Concept', icon: conceptIcon,
+                        content: (
+                            <ConceptStepper steps={[
+                                {
+                                    label: 'Subgroups',
+                                    content: (
+                                        <div>
+                                            <Intuition>
+                                                A subgroup is a group living inside a larger group — a self-contained subset under the same operation.
+                                            </Intuition>
+                                            <Reading>
+                                                <p>
+                                                    A subset <Latex>{'$H \\subseteq G$'}</Latex> is a <strong>subgroup</strong> (<Latex>{'$H \\leq G$'}</Latex>) if
+                                                    <Latex>{'$e \\in H$'}</Latex>, and <Latex>{'$H$'}</Latex> is closed under the operation and inverses.
+                                                </p>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    label: 'Cosets',
+                                    content: (
+                                        <div>
+                                            <Reading>
+                                                <p>
+                                                    Given <Latex>{'$H \\leq G$'}</Latex> and <Latex>{'$g \\in G$'}</Latex>, the <strong>left coset</strong> is:
+                                                </p>
+                                                <FormulaBox>
+                                                    <Latex>{'$$gH = \\{g \\cdot h \\mid h \\in H\\}$$'}</Latex>
+                                                </FormulaBox>
+                                                <p>Cosets are either identical or disjoint, partitioning <Latex>{'$G$'}</Latex> into equal-sized pieces.</p>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    label: "Lagrange's Theorem",
+                                    content: (
+                                        <div>
+                                            <TheoremBox title="Lagrange's Theorem">
+                                                <div className="text-center my-2">
+                                                    <Latex>{'$$|G| = |H| \\times [G : H]$$'}</Latex>
+                                                </div>
+                                                <p>The order of any subgroup divides the order of the group.</p>
+                                            </TheoremBox>
+                                        </div>
+                                    ),
+                                },
+                            ]} />
+                        ),
+                    },
+                    { id: 'visualize', label: 'Visualize', icon: visualizeIcon, content: subgroupLab },
+                    {
+                        id: 'code', label: 'Code', icon: codeIcon,
+                        content: (
+                            <Reading>
+                                <CodeBlock title="subgroups_cosets.py" runnable code={`def cosets(n, H):
+    visited = set()
+    result = []
+    for g in range(n):
+        if g in visited:
+            continue
+        coset = sorted({(g + h) % n for h in H})
+        result.append(coset)
+        for el in coset:
+            visited.add(el)
+    return result
 
-            {/* ─── Kernel & First Isomorphism Theorem ─── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                The Kernel and the First Isomorphism Theorem
-            </h3>
+G_order = 12
+H = [0, 4, 8]
+partition = cosets(G_order, H)
+print(f"|G|={G_order}, |H|={len(H)}, cosets={len(partition)}")
+print(f"Lagrange: {G_order} = {len(H)} x {len(partition)}")
+for i, c in enumerate(partition):
+    print(f"  Coset {i}: {c}")
+`} />
+                            </Reading>
+                        ),
+                    },
+                    {
+                        id: 'exercise', label: 'Exercise', icon: exerciseIcon,
+                        content: (
+                            <CodingExercise bare title="Exercise: Compute Cosets"
+                                prompt="Compute all left cosets of a subgroup H in the cyclic group Z_n."
+                                starterCode={SUBGROUP_EXERCISE.starter}
+                                checks={SUBGROUP_EXERCISE.checks}
+                                solution={SUBGROUP_EXERCISE.solution}
+                            />
+                        ),
+                    },
+                    { id: 'quiz', label: 'Quiz', icon: quizIcon, content: <Quiz bare questions={SUBGROUP_QUIZ} title="Check: Subgroups & Cosets" /> },
+                ]} />
+            </Card>
 
-            <p>
-                The <strong>kernel</strong> of a group homomorphism <Latex>{'$\\varphi : G \\to H$'}</Latex> is the set of elements
-                in <Latex>{'$G$'}</Latex> that map to the identity element in <Latex>{'$H$'}</Latex>:
-            </p>
+            <Card title="Group Homomorphisms">
+                <Tabs tabs={[
+                    {
+                        id: 'concept', label: 'Concept', icon: conceptIcon,
+                        content: (
+                            <ConceptStepper steps={[
+                                {
+                                    label: 'Structure-Preserving Maps',
+                                    content: (
+                                        <div>
+                                            <Intuition>
+                                                A homomorphism is a function between groups that respects how elements combine — it preserves the algebraic shape.
+                                            </Intuition>
+                                            <Reading>
+                                                <p>
+                                                    A function <Latex>{'$\\varphi: G \\to H$'}</Latex> is a <strong>group homomorphism</strong> if:
+                                                </p>
+                                                <FormulaBox>
+                                                    <Latex>{'$$\\varphi(a \\cdot b) = \\varphi(a) \\cdot \\varphi(b)$$'}</Latex>
+                                                </FormulaBox>
+                                                <p>A bijective homomorphism is an <strong>isomorphism</strong>: <Latex>{'$G \\cong H$'}</Latex>.</p>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    label: 'Kernel & Image',
+                                    content: (
+                                        <div>
+                                            <Reading>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
+                                                    <div className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-xl">
+                                                        <p className="font-bold text-sm mb-2">Kernel</p>
+                                                        <Latex>{'$\\ker(\\varphi) = \\{g \\mid \\varphi(g) = e_H\\}$'}</Latex>
+                                                        <p className="text-xs text-amber-800 mt-2">Elements mapped to identity. Normal subgroup of G.</p>
+                                                    </div>
+                                                    <div className="bg-emerald-50 border-l-4 border-emerald-400 p-4 rounded-r-xl">
+                                                        <p className="font-bold text-sm mb-2">Image</p>
+                                                        <Latex>{'$\\text{Im}(\\varphi) = \\{\\varphi(g) \\mid g \\in G\\}$'}</Latex>
+                                                        <p className="text-xs text-emerald-800 mt-2">All outputs. Subgroup of H.</p>
+                                                    </div>
+                                                </div>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    label: 'Equivariance Connection',
+                                    content: (
+                                        <div>
+                                            <Callout title="Why this matters for Transformers">
+                                                Equivariant neural network layers are homomorphisms between representation spaces.
+                                                The First Isomorphism Theorem reveals what information is preserved vs discarded.
+                                            </Callout>
+                                            <TheoremBox title="First Isomorphism Theorem">
+                                                <div className="text-center my-2">
+                                                    <Latex>{'$$G / \\ker(\\varphi) \\cong \\text{Im}(\\varphi)$$'}</Latex>
+                                                </div>
+                                            </TheoremBox>
+                                        </div>
+                                    ),
+                                },
+                            ]} />
+                        ),
+                    },
+                    { id: 'visualize', label: 'Visualize', icon: visualizeIcon, content: homomorphismLab },
+                    {
+                        id: 'code', label: 'Code', icon: codeIcon,
+                        content: (
+                            <Reading>
+                                <CodeBlock title="homomorphisms.py" runnable code={`def check_hom(m, n, phi):
+    for a in range(m):
+        for b in range(m):
+            if phi((a+b)%m)%n != (phi(a)+phi(b))%n:
+                return False
+    return True
 
-            <div className="bg-slate-50 p-4 rounded-lg my-4 border border-slate-200 text-center">
-                <Latex>{'$\\ker(\\varphi) = \\{g \\in G \\mid \\varphi(g) = e_H\\}$'}</Latex>
-            </div>
+phi = lambda x: x % 3
+print("phi(x) = x mod 3  (Z_6 -> Z_3)")
+print("Is homomorphism:", check_hom(6, 3, phi))
 
-            <p>
-                The kernel is always a <strong>normal subgroup</strong> of <Latex>{'$G$'}</Latex>. This leads to one of the
-                most profound results in group theory:
-            </p>
-
-            <div className="bg-amber-50 border-l-4 border-amber-400 p-5 my-6">
-                <p className="font-semibold text-amber-800 mb-2">First Isomorphism Theorem</p>
-                <p className="text-sm text-amber-900 mb-3">
-                    The image of <Latex>{'$\\varphi$'}</Latex> is isomorphic to the quotient
-                    group <Latex>{'$G / \\ker(\\varphi)$'}</Latex>:
-                </p>
-                <div className="text-center my-2">
-                    <Latex>{'$G / \\ker(\\varphi) \\cong \\text{Im}(\\varphi)$'}</Latex>
-                </div>
-                <p className="text-sm text-amber-900 mt-3">
-                    This theorem provides a deep connection between homomorphisms, kernels, and
-                    quotient groups. It tells us that the &ldquo;interesting part&rdquo; of a homomorphism —
-                    what it doesn&apos;t collapse — is structurally identical to its image.
-                </p>
-            </div>
-
-            <p>
-                Group homomorphisms have concrete applications beyond pure algebra. In geometry, the symmetry
-                group of a shape can be related to the symmetry group of a different shape through a
-                homomorphism, revealing how one set of symmetries maps onto another. In physics,
-                homomorphisms between symmetry groups describe how different physical systems are related.
-            </p>
-
-            {/* ─── Equivariance in Transformers ─── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                Equivariance and Transformers
-            </h3>
-
-            <p>
-                In the context of transformers and machine learning, group homomorphisms play a crucial role
-                in modeling how symmetries in the input data are preserved or transformed by the network.
-                Consider a scenario where the input data exhibits symmetries described by a group <Latex>{'$G$'}</Latex>,
-                with elements representing operations like rotations, translations, or permutations.
-            </p>
-
-            <p className="mt-4">
-                Let <Latex>{'$X$'}</Latex> denote the input space and <Latex>{'$V$'}</Latex> the feature space.
-                The data is embedded via a representation map <Latex>{'$\\varphi : X \\to V$'}</Latex>.
-                If the data has inherent symmetry described by <Latex>{'$G$'}</Latex>, we want the embedding to
-                satisfy the <strong>equivariance condition</strong>:
-            </p>
-
-            <div className="bg-indigo-50 border-l-4 border-indigo-400 p-5 my-6">
-                <p className="font-semibold text-indigo-800 mb-2">Equivariance Condition</p>
-                <div className="text-center my-2">
-                    <Latex>{'$\\varphi(\\alpha_g(x)) = \\rho(g)\\varphi(x) \\quad \\text{for all } g \\in G \\text{ and } x \\in X$'}</Latex>
-                </div>
-                <p className="text-sm text-indigo-900 mt-3">
-                    This states that applying a group transformation <Latex>{'$g$'}</Latex> to the input and then
-                    embedding should equal first embedding and then applying the linear transformation <Latex>{'$\\rho(g)$'}</Latex>.
-                    The map <Latex>{'$\\rho$'}</Latex> is a group homomorphism because it preserves structure:
-                    <span className="block text-center mt-2">
-                        <Latex>{'$\\rho(g_1 g_2) = \\rho(g_1)\\rho(g_2)$'}</Latex>
-                    </span>
-                </p>
-            </div>
-
-            <p>
-                The layers of a transformer can be viewed as a sequence of
-                homomorphisms <Latex>{'$T_1, T_2, \\ldots, T_n$'}</Latex>, each mapping the feature
-                space <Latex>{'$V_i$'}</Latex> of the <Latex>{'$i$'}</Latex>-th layer to <Latex>{'$V_{i+1}$'}</Latex>.
-                Each transformation is expected to preserve the group action:
-            </p>
-
-            <div className="bg-slate-50 p-4 rounded-lg my-4 border border-slate-200 text-center">
-                <Latex>{'$T_i(\\rho_i(g)v) = \\rho_{i+1}(g)T_i(v) \\quad \\text{for all } v \\in V_i \\text{ and } g \\in G$'}</Latex>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
-                <div className="bg-emerald-50 border-l-4 border-emerald-400 p-4">
-                    <h4 className="font-bold text-emerald-800 mb-2 text-sm">Spherical Harmonics</h4>
-                    <p className="text-xs text-emerald-900">
-                        For rotational symmetries, the feature spaces <Latex>{'$V_i$'}</Latex> can be spaces
-                        of spherical harmonics — representations of <Latex>{'$SO(3)$'}</Latex>. The layers act on
-                        these spaces consistently with the rotational symmetry.
-                    </p>
-                </div>
-                <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
-                    <h4 className="font-bold text-blue-800 mb-2 text-sm">Efficiency &amp; Interpretability</h4>
-                    <p className="text-xs text-blue-900">
-                        Instead of learning separate representations for each transformation,
-                        the model learns a single equivariant representation — reducing parameters
-                        and producing features that align with the underlying data symmetries.
-                    </p>
-                </div>
-            </div>
+ker = [a for a in range(6) if phi(a) % 3 == 0]
+img = sorted(set(phi(a) % 3 for a in range(6)))
+print(f"Kernel: {ker}  size={len(ker)}")
+print(f"Image:  {img}  size={len(img)}")
+print(f"First Iso: 6/{len(ker)} = {6//len(ker)} = {len(img)}")
+`} />
+                            </Reading>
+                        ),
+                    },
+                    {
+                        id: 'exercise', label: 'Exercise', icon: exerciseIcon,
+                        content: (
+                            <CodingExercise bare title="Exercise: Check Homomorphisms"
+                                prompt="Implement functions to verify the homomorphism property and compute the kernel."
+                                starterCode={HOMO_EXERCISE.starter}
+                                checks={HOMO_EXERCISE.checks}
+                                solution={HOMO_EXERCISE.solution}
+                            />
+                        ),
+                    },
+                    { id: 'quiz', label: 'Quiz', icon: quizIcon, content: <Quiz bare questions={HOMO_QUIZ} title="Check: Homomorphisms" /> },
+                ]} />
+            </Card>
         </div>
     );
 }
 
-export function RepresentationTheory() {
+type RepresentationTheoryProps = {
+    representationLab?: React.ReactNode;
+    characterLab?: React.ReactNode;
+};
+
+export function RepresentationTheoryContent({ representationLab, characterLab }: RepresentationTheoryProps) {
     return (
-        <div className="prose prose-slate max-w-none">
-            <h2 className="text-2xl font-bold text-indigo-700 border-b-2 border-indigo-200 pb-2 mb-4">
-                Representation Theory of Finite Groups
-            </h2>
+        <div className="space-y-10">
+            <Card title="Group Representations">
+                <Tabs tabs={[
+                    {
+                        id: 'concept', label: 'Concept', icon: conceptIcon,
+                        content: (
+                            <ConceptStepper steps={[
+                                {
+                                    label: 'What is a Representation?',
+                                    content: (
+                                        <div>
+                                            <Intuition>
+                                                A representation makes an abstract group concrete by turning each element into a matrix. We can then use all of linear algebra to study the group.
+                                            </Intuition>
+                                            <Reading>
+                                                <p>A <strong>representation</strong> of <Latex>{'$G$'}</Latex> on vector space <Latex>{'$V$'}</Latex> is a homomorphism:</p>
+                                                <FormulaBox>
+                                                    <Latex>{'$$\\rho: G \\to \\text{GL}(V)$$'}</Latex>
+                                                </FormulaBox>
+                                                <p>Since <Latex>{'$\\rho$'}</Latex> is a homomorphism: <Latex>{'$\\rho(g_1 g_2) = \\rho(g_1)\\rho(g_2)$'}</Latex>.</p>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    label: 'Irreducible Representations',
+                                    content: (
+                                        <div>
+                                            <Reading>
+                                                <p>
+                                                    A representation is <strong>irreducible</strong> if it has no proper invariant subspaces.
+                                                    Every representation decomposes uniquely as a direct sum of irreps:
+                                                </p>
+                                                <FormulaBox>
+                                                    <Latex>{'$$V \\cong V_1^{\\oplus m_1} \\oplus V_2^{\\oplus m_2} \\oplus \\cdots$$'}</Latex>
+                                                </FormulaBox>
+                                                <Callout title="Schur's Lemma">
+                                                    Any equivariant linear map between two irreps is either zero or an isomorphism.
+                                                    This constrains which weight matrices are possible in equivariant networks.
+                                                </Callout>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    label: 'The Cyclic Group',
+                                    content: (
+                                        <div>
+                                            <Reading>
+                                                <p>
+                                                    <Latex>{'$C_n$'}</Latex> has exactly <strong>n distinct 1D irreps</strong>:
+                                                </p>
+                                                <FormulaBox>
+                                                    <Latex>{'$$\\rho_k(g^j) = e^{2\\pi i jk/n} = \\omega^{jk}$$'}</Latex>
+                                                </FormulaBox>
+                                                <p>
+                                                    The Discrete Fourier Transform is precisely the decomposition of a function on
+                                                    <Latex>{'$\\mathbb{Z}_n$'}</Latex> into these irreps.
+                                                </p>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                            ]} />
+                        ),
+                    },
+                    { id: 'visualize', label: 'Visualize', icon: visualizeIcon, content: representationLab },
+                    {
+                        id: 'code', label: 'Code', icon: codeIcon,
+                        content: (
+                            <Reading>
+                                <CodeBlock title="representations.py" runnable code={`import numpy as np
 
-            <p>
-                Representation theory is a powerful tool that allows us to study abstract algebraic
-                structures, such as groups, by representing their elements as matrices and their
-                operations as matrix multiplication. This approach provides a concrete way to analyze
-                the symmetries of a system, which is particularly relevant in areas such as physics,
-                chemistry, and computer science. In the context of transformers, understanding group
-                representations is crucial for analyzing how symmetries in data are captured and
-                processed by the model.
-            </p>
+def cyclic_rep(n, k):
+    """k-th 1D irrep of C_n at each element g^j."""
+    j = np.arange(n)
+    return np.exp(2j * np.pi * j * k / n)
 
-            {/* ─── Group Representations ─── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                Group Representations
-            </h3>
+n = 6
+print(f"C_{n} representations (real parts):")
+for k in range(n):
+    rho = cyclic_rep(n, k)
+    print(f"  rho_{k}: {np.round(rho.real, 3)}")
 
-            <p>
-                A <strong>representation</strong> of a group <Latex>{'$G$'}</Latex> on a vector
-                space <Latex>{'$V$'}</Latex> over a field <Latex>{'$F$'}</Latex> is a
-                homomorphism <Latex>{'$\\rho : G \\to \\text{GL}(V)$'}</Latex>,
-                where <Latex>{'$\\text{GL}(V)$'}</Latex> is the group of all invertible linear
-                transformations of <Latex>{'$V$'}</Latex>. In other words, a representation is a way of
-                associating each element <Latex>{'$g \\in G$'}</Latex> with an invertible
-                matrix <Latex>{'$\\rho(g)$'}</Latex> such that the group operation is preserved:
-            </p>
+print()
+rho2 = cyclic_rep(n, 2)
+print("Verify homomorphism: rho_2(g^3) = rho_2(g)^3 ?")
+print(f"  rho_2(g^3) = {rho2[3]:.4f}")
+print(f"  rho_2(g)^3 = {rho2[1]**3:.4f}")
+print(f"  Match: {np.isclose(rho2[3], rho2[1]**3)}")
+`} />
+                            </Reading>
+                        ),
+                    },
+                    {
+                        id: 'exercise', label: 'Exercise', icon: exerciseIcon,
+                        content: (
+                            <CodingExercise bare title="Exercise: Cyclic Group Representations"
+                                prompt="Implement the k-th 1D representation of C_n and verify the homomorphism property."
+                                starterCode={REP_EXERCISE.starter}
+                                checks={REP_EXERCISE.checks}
+                                solution={REP_EXERCISE.solution}
+                            />
+                        ),
+                    },
+                    { id: 'quiz', label: 'Quiz', icon: quizIcon, content: <Quiz bare questions={REP_QUIZ} title="Check: Group Representations" /> },
+                ]} />
+            </Card>
 
-            <div className="bg-slate-50 p-4 rounded-lg my-4 border border-slate-200 text-center">
-                <Latex>{'$\\rho(g_1 g_2) = \\rho(g_1)\\rho(g_2)$'}</Latex>
-            </div>
+            <Card title="Character Theory">
+                <Tabs tabs={[
+                    {
+                        id: 'concept', label: 'Concept', icon: conceptIcon,
+                        content: (
+                            <ConceptStepper steps={[
+                                {
+                                    label: 'Characters',
+                                    content: (
+                                        <div>
+                                            <Intuition>
+                                                A character condenses a whole matrix representation into a single number per group element — the trace. Like a fingerprint, it uniquely identifies the representation.
+                                            </Intuition>
+                                            <Reading>
+                                                <p>The <strong>character</strong> of representation <Latex>{'$\\rho$'}</Latex>:</p>
+                                                <FormulaBox>
+                                                    <Latex>{'$$\\chi(g) = \\text{Tr}(\\rho(g))$$'}</Latex>
+                                                </FormulaBox>
+                                                <p>Two representations are equivalent iff they have the same character.</p>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    label: 'Class Functions',
+                                    content: (
+                                        <div>
+                                            <Reading>
+                                                <p>
+                                                    Characters are <strong>class functions</strong> — constant on conjugacy classes.
+                                                    If <Latex>{'$g_1 = h g_2 h^{-1}$'}</Latex>:
+                                                </p>
+                                                <FormulaBox>
+                                                    <Latex>{'$$\\chi(g_1) = \\chi(g_2)$$'}</Latex>
+                                                </FormulaBox>
+                                                <p>
+                                                    This means the character table is <Latex>{'$k \\times k$'}</Latex> where <Latex>{'$k$'}</Latex> is
+                                                    the number of conjugacy classes — often much smaller than <Latex>{'$|G|$'}</Latex>.
+                                                </p>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    label: 'Orthogonality',
+                                    content: (
+                                        <div>
+                                            <TheoremBox title="Row Orthogonality">
+                                                <div className="text-center my-2">
+                                                    <Latex>{'$$\\frac{1}{|G|} \\sum_{g \\in G} \\chi_i(g) \\overline{\\chi_j(g)} = \\delta_{ij}$$'}</Latex>
+                                                </div>
+                                                <p>Irreducible characters form an orthonormal basis for class functions.</p>
+                                            </TheoremBox>
+                                        </div>
+                                    ),
+                                },
+                            ]} />
+                        ),
+                    },
+                    { id: 'visualize', label: 'Visualize', icon: visualizeIcon, content: characterLab },
+                    {
+                        id: 'code', label: 'Code', icon: codeIcon,
+                        content: (
+                            <Reading>
+                                <CodeBlock title="characters.py" runnable code={`import numpy as np
 
-            <p>
-                for all <Latex>{'$g_1, g_2 \\in G$'}</Latex>. The vector space <Latex>{'$V$'}</Latex> is called
-                the <strong>representation space</strong> of <Latex>{'$\\rho$'}</Latex>, and the dimension
-                of <Latex>{'$V$'}</Latex> is called the <strong>degree</strong> of the representation. If <Latex>{'$V$'}</Latex> is
-                finite-dimensional, the representation <Latex>{'$\\rho$'}</Latex> can be described by a set
-                of <Latex>{'$n \\times n$'}</Latex> matrices, where <Latex>{'$n$'}</Latex> is the dimension
-                of <Latex>{'$V$'}</Latex>.
-            </p>
+S3 = np.array([[1,1,1],[1,-1,1],[2,0,-1]])
+class_sizes = np.array([1,3,2])
+order = 6
 
-            <div className="bg-violet-50 border-l-4 border-violet-400 p-4 my-6">
-                <p className="font-semibold text-violet-800 mb-2">Key Terminology</p>
-                <ul className="text-sm text-violet-900 space-y-1 list-disc list-inside">
-                    <li><strong>Representation Space:</strong> The vector space <Latex>{'$V$'}</Latex> on which the group acts</li>
-                    <li><strong>Degree:</strong> The dimension of <Latex>{'$V$'}</Latex> (i.e., the size of the matrices)</li>
-                    <li><strong>Faithful:</strong> A representation where different group elements map to different matrices (trivial kernel)</li>
-                    <li><strong>Irreducible (&ldquo;Irrep&rdquo;):</strong> No non-trivial invariant subspace exists — the &ldquo;atoms&rdquo; of representation theory</li>
-                    <li><strong>Character:</strong> <Latex>{'$\\chi(g) = \\text{Tr}(\\rho(g))$'}</Latex> — a coordinate-independent fingerprint</li>
-                </ul>
-            </div>
+def ip(ci, cj):
+    return np.real(np.dot(class_sizes*ci, np.conj(cj)))/order
 
-            {/* ─── Cyclic Group Example ─── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                Cyclic Group Representations
-            </h3>
+print("S_3 Character Table:")
+print(S3)
+print()
 
-            <p>
-                Consider the cyclic group <Latex>{'$C_n = \\langle g \\rangle$'}</Latex> of
-                order <Latex>{'$n$'}</Latex>. A representation of <Latex>{'$C_n$'}</Latex> is given by
-                associating the generator <Latex>{'$g$'}</Latex> with a matrix <Latex>{'$\\rho(g)$'}</Latex> such
-                that <Latex>{'$\\rho(g^n) = I$'}</Latex>, where <Latex>{'$I$'}</Latex> is the identity matrix.
-            </p>
-
-            <div className="bg-amber-50 border-l-4 border-amber-400 p-5 my-6">
-                <p className="font-semibold text-amber-800 mb-2">One-Dimensional Representations</p>
-                <p className="text-sm text-amber-900 mb-2">
-                    A simple representation of <Latex>{'$C_n$'}</Latex> is the one-dimensional representation:
-                </p>
-                <div className="text-center my-2">
-                    <Latex>{'$\\rho_k(g) = e^{2\\pi i k / n}$'}</Latex>
-                </div>
-                <p className="text-sm text-amber-900 mt-2">
-                    which corresponds to a rotation by <Latex>{'$2\\pi k/n$'}</Latex> in the complex plane.
-                    Different values of <Latex>{'$k$'}</Latex> give different representations of the same group.
-                </p>
-            </div>
-
-            {/* ─── Physics & Geometry ─── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                Applications in Geometry and Physics
-            </h3>
-
-            <p>
-                Group representations are particularly important in understanding symmetries in
-                geometry and physics. The rotation group <Latex>{'$SO(3)$'}</Latex> has representations that
-                describe how objects in three-dimensional space can be rotated. These representations
-                are used extensively in quantum mechanics, where the symmetries of a system are
-                represented by the group of rotations, and the states of the system correspond to
-                vectors in a representation space.
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
-                <div className="bg-emerald-50 border-l-4 border-emerald-400 p-4">
-                    <h4 className="font-bold text-emerald-800 mb-2 text-sm">Rotation Group SO(3)</h4>
-                    <p className="text-xs text-emerald-900">
-                        The representations of <Latex>{'$SO(3)$'}</Latex> classify how physical objects
-                        transform under rotations. In quantum mechanics, these give rise to
-                        angular momentum quantum numbers and spherical harmonics.
-                    </p>
-                </div>
-                <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
-                    <h4 className="font-bold text-blue-800 mb-2 text-sm">Quantum States</h4>
-                    <p className="text-xs text-blue-900">
-                        States of a quantum system correspond to vectors in a representation space.
-                        The group structure ensures that physical symmetries are preserved through
-                        state transformations.
-                    </p>
-                </div>
-            </div>
-
-            {/* ─── ML & Transformers ─── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                Representations in Machine Learning
-            </h3>
-
-            <p>
-                In the context of machine learning and transformers, group representations can be
-                used to model how data is transformed as it passes through the layers of the network.
-                The self-attention mechanism in transformers can be interpreted as a
-                representation of a permutation group, where the elements of the group correspond to
-                different ways of permuting the input sequence.
-            </p>
-
-            <div className="bg-indigo-50 border-l-4 border-indigo-400 p-4 my-6">
-                <p className="font-semibold text-indigo-800 mb-2">Self-Attention as Representation</p>
-                <p className="text-sm text-indigo-900">
-                    By understanding the representation theory of the permutation group acting on sequences,
-                    we gain insights into how the transformer captures symmetries and invariances in the data.
-                    The key and query matrices <Latex>{'$W_K, W_Q$'}</Latex> can be seen as defining the
-                    interaction between different representations, while the value matrix <Latex>{'$W_V$'}</Latex> determines
-                    how features are combined under these symmetries.
-                </p>
-            </div>
+n = len(S3)
+gram = [[ip(S3[i], S3[j]) for j in range(n)] for i in range(n)]
+print("Gram matrix:")
+for row in gram:
+    print([round(v, 3) for v in row])
+print("Is identity?", np.allclose(gram, np.eye(n)))
+`} />
+                            </Reading>
+                        ),
+                    },
+                    {
+                        id: 'exercise', label: 'Exercise', icon: exerciseIcon,
+                        content: (
+                            <CodingExercise bare title="Exercise: Character Orthogonality"
+                                prompt="Compute the character inner product and verify orthonormality for S_3."
+                                starterCode={CHAR_EXERCISE.starter}
+                                checks={CHAR_EXERCISE.checks}
+                                solution={CHAR_EXERCISE.solution}
+                            />
+                        ),
+                    },
+                    { id: 'quiz', label: 'Quiz', icon: quizIcon, content: <Quiz bare questions={CHAR_QUIZ} title="Check: Character Theory" /> },
+                ]} />
+            </Card>
         </div>
     );
 }
 
-export function CharacterTheory() {
+type ApplicationsProps = {
+    equivarianceLab?: React.ReactNode;
+};
+
+export function ApplicationsContent({ equivarianceLab }: ApplicationsProps) {
     return (
-        <div className="prose prose-slate max-w-none">
-            <h2 className="text-2xl font-bold text-indigo-700 border-b-2 border-indigo-200 pb-2 mb-4">
-                Character Theory
-            </h2>
+        <div className="space-y-10">
+            <Card title="Symmetry in Transformers">
+                <Tabs tabs={[
+                    {
+                        id: 'concept', label: 'Concept', icon: conceptIcon,
+                        content: (
+                            <ConceptStepper steps={[
+                                {
+                                    label: 'Invariance vs Equivariance',
+                                    content: (
+                                        <div>
+                                            <Intuition>
+                                                Invariance: output does not change when input is transformed. Equivariance: output transforms in the same way. Classification is invariant; pose estimation is equivariant.
+                                            </Intuition>
+                                            <Reading>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
+                                                    <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-4">
+                                                        <p className="font-bold text-sm mb-2">Invariant</p>
+                                                        <Latex>{'$f(g \\cdot x) = f(x)$'}</Latex>
+                                                        <p className="text-xs text-[var(--muted)] mt-2">For classification heads, global pooling.</p>
+                                                    </div>
+                                                    <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-4">
+                                                        <p className="font-bold text-sm mb-2">Equivariant</p>
+                                                        <Latex>{'$f(g \\cdot x) = g \\cdot f(x)$'}</Latex>
+                                                        <p className="text-xs text-[var(--muted)] mt-2">For intermediate layers that preserve structure.</p>
+                                                    </div>
+                                                </div>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    label: 'Self-Attention as Permutation Equivariance',
+                                    content: (
+                                        <div>
+                                            <Reading>
+                                                <p>Standard self-attention is equivariant under <Latex>{'$S_n$'}</Latex>:</p>
+                                                <FormulaBox>
+                                                    <Latex>{'$$\\text{Attn}(P\\mathbf{X}) = P\\,\\text{Attn}(\\mathbf{X}) \\quad \\forall P \\in S_n$$'}</Latex>
+                                                </FormulaBox>
+                                                <p>
+                                                    Positional encodings intentionally break this <Latex>{'$S_n$'}</Latex> symmetry when order matters.
+                                                </p>
+                                                <Callout title="Why equivariance helps">
+                                                    Equivariant layers generalize better: the network learns one representation for each
+                                                    pattern, valid across all group transformations, rather than one per transformation.
+                                                </Callout>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    label: 'Equivariant Attention',
+                                    content: (
+                                        <div>
+                                            <Reading>
+                                                <p>
+                                                    SE(3)-Transformers and Equiformer extend attention to <Latex>{'$SO(3)$'}</Latex> equivariance
+                                                    for 3D molecular data. By Schur's Lemma, equivariant weight matrices must have a
+                                                    structured sparse form determined by the irrep decomposition.
+                                                </p>
+                                                <TheoremBox title="Weight Constraints from Schur's Lemma">
+                                                    <p>
+                                                        A linear map <Latex>{'$W: V_i \\to V_j$'}</Latex> between irrep spaces commutes with the
+                                                        group action only if <Latex>{'$\\rho_i \\cong \\rho_j$'}</Latex> (and then <Latex>{'$W = \\lambda I$'}</Latex>).
+                                                        This dramatically reduces free parameters.
+                                                    </p>
+                                                </TheoremBox>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                            ]} />
+                        ),
+                    },
+                    { id: 'visualize', label: 'Visualize', icon: visualizeIcon, content: equivarianceLab },
+                    {
+                        id: 'code', label: 'Code', icon: codeIcon,
+                        content: (
+                            <Reading>
+                                <CodeBlock title="equivariance.py" runnable code={`import numpy as np
 
-            <p>
-                Character theory is a branch of representation theory that focuses on the trace of the
-                matrices associated with group elements. The <strong>character</strong> of a
-                representation <Latex>{'$\\rho : G \\to \\text{GL}(V)$'}</Latex> is a
-                function <Latex>{'$\\chi : G \\to F$'}</Latex> defined by
-            </p>
+def softmax(x):
+    e = np.exp(x - x.max(axis=-1, keepdims=True))
+    return e / e.sum(axis=-1, keepdims=True)
 
-            <div className="bg-slate-50 p-4 rounded-lg my-4 border border-slate-200 text-center">
-                <Latex>{'$\\chi(g) = \\text{Tr}(\\rho(g))$'}</Latex>
-            </div>
+def self_attention(X, Wq, Wk, Wv):
+    d = X.shape[-1]
+    Q, K, V = X @ Wq, X @ Wk, X @ Wv
+    return softmax(Q @ K.T / np.sqrt(d)) @ V
 
-            <p>
-                where <Latex>{'$\\text{Tr}(\\rho(g))$'}</Latex> denotes the trace of the
-                matrix <Latex>{'$\\rho(g)$'}</Latex>. The character <Latex>{'$\\chi$'}</Latex> encodes
-                important information about the representation, such as its degree (given
-                by <Latex>{'$\\chi(e)$'}</Latex>, where <Latex>{'$e$'}</Latex> is the identity element
-                of <Latex>{'$G$'}</Latex>) and how the representation decomposes into irreducible components.
-            </p>
+np.random.seed(42)
+n, d = 4, 8
+X = np.random.randn(n, d)
+Wq = np.random.randn(d, d) * 0.3
+Wk = np.random.randn(d, d) * 0.3
+Wv = np.random.randn(d, d) * 0.3
 
-            {/* ─── Class Functions ─── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                Characters as Class Functions
-            </h3>
+perm = [2, 0, 3, 1]
+out_then_perm = self_attention(X, Wq, Wk, Wv)[perm]
+out_after_perm = self_attention(X[perm], Wq, Wk, Wv)
 
-            <p>
-                One of the key results in character theory is that characters are <strong>class functions</strong>,
-                meaning they are constant on conjugacy classes of the group. If <Latex>{'$g_1$'}</Latex> and <Latex>{'$g_2$'}</Latex> are
-                conjugate in <Latex>{'$G$'}</Latex> (i.e., there exists <Latex>{'$h \\in G$'}</Latex> such
-                that <Latex>{'$g_2 = hg_1h^{-1}$'}</Latex>), then
-            </p>
-
-            <div className="bg-slate-50 p-4 rounded-lg my-4 border border-slate-200 text-center">
-                <Latex>{'$\\chi(g_1) = \\chi(g_2)$'}</Latex>
-            </div>
-
-            <p>
-                This property greatly simplifies the study of representations, as it reduces the
-                problem to understanding the characters on a finite number of conjugacy classes.
-            </p>
-
-            <div className="bg-violet-50 border-l-4 border-violet-400 p-4 my-6">
-                <p className="font-semibold text-violet-800 mb-2">Why Class Functions Matter</p>
-                <p className="text-sm text-violet-900">
-                    Since conjugate elements always have the same character value, the entire character
-                    of a representation is determined by its values on conjugacy class representatives.
-                    For a group with <Latex>{'$k$'}</Latex> conjugacy classes, the character table
-                    is a <Latex>{'$k \\times k$'}</Latex> matrix — far more compact than listing values
-                    for every element.
-                </p>
-            </div>
-
-            {/* ─── Orthogonality Relations ─── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                Orthogonality Relations
-            </h3>
-
-            <p>
-                Characters play a crucial role in the classification of representations. The <strong>orthogonality
-                    relations</strong> provide a powerful tool for determining whether two representations are
-                equivalent and for decomposing a given representation into irreducible components.
-                For a finite group <Latex>{'$G$'}</Latex> and two irreducible
-                characters <Latex>{'$\\chi$'}</Latex> and <Latex>{'$\\psi$'}</Latex>, the orthogonality
-                relation states that
-            </p>
-
-            <div className="bg-amber-50 border-l-4 border-amber-400 p-5 my-6">
-                <p className="font-semibold text-amber-800 mb-2">Row Orthogonality</p>
-                <div className="text-center my-2">
-                    <Latex>{'$\\frac{1}{|G|} \\sum_{g \\in G} \\chi(g)\\overline{\\psi(g)} = \\delta_{\\chi\\psi}$'}</Latex>
-                </div>
-                <p className="text-sm text-amber-900 mt-3">
-                    where <Latex>{'$|G|$'}</Latex> is the order of the group
-                    and <Latex>{'$\\delta_{\\chi\\psi}$'}</Latex> is the Kronecker delta — equal to 1
-                    if <Latex>{'$\\chi = \\psi$'}</Latex> and 0 otherwise. This implies that the
-                    characters of different irreducible representations are <em>orthogonal</em>, forming
-                    an orthonormal basis for the space of class functions.
-                </p>
-            </div>
-
-            <p>
-                This relation provides a method for finding the <strong>multiplicities</strong> of irreducible
-                components in a given representation: the multiplicity of an irrep <Latex>{'$\\chi_i$'}</Latex> in
-                a representation with character <Latex>{'$\\chi$'}</Latex> is given
-                by <Latex>{'$\\langle \\chi, \\chi_i \\rangle$'}</Latex>.
-            </p>
-
-            {/* ─── Geometry & Physics ─── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                Connections to Geometry and Physics
-            </h3>
-
-            <p>
-                Character theory has deep connections to the geometry of the underlying space on which
-                the group acts. For example, the characters of the rotation group <Latex>{'$SO(3)$'}</Latex> are
-                related to <strong>spherical harmonics</strong>, which describe the symmetries of functions on the
-                sphere.
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
-                <div className="bg-emerald-50 border-l-4 border-emerald-400 p-4">
-                    <h4 className="font-bold text-emerald-800 mb-2 text-sm">Spherical Harmonics</h4>
-                    <p className="text-xs text-emerald-900">
-                        The characters of <Latex>{'$SO(3)$'}</Latex> describe how functions on the
-                        sphere decompose into spherical harmonic components. This is exploited in
-                        atomic orbital analysis and vibration studies.
-                    </p>
-                </div>
-                <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
-                    <h4 className="font-bold text-blue-800 mb-2 text-sm">Molecular Symmetry</h4>
-                    <p className="text-xs text-blue-900">
-                        In chemistry, character tables of point groups classify molecular vibrations,
-                        predict infrared/Raman activity, and determine selection rules for
-                        spectroscopic transitions.
-                    </p>
-                </div>
-            </div>
-
-            {/* ─── Transformers ─── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                Characters in Transformer Analysis
-            </h3>
-
-            <p>
-                In the context of transformers, character theory can be used to analyze how the
-                model captures the symmetries in the data. If the data exhibits a certain
-                group symmetry, the character of the representation associated with the model can
-                reveal how this symmetry is preserved or broken as the data is processed.
-            </p>
-
-            <div className="bg-indigo-50 border-l-4 border-indigo-400 p-4 my-6">
-                <p className="font-semibold text-indigo-800 mb-2">Symmetry Fingerprinting</p>
-                <p className="text-sm text-indigo-900">
-                    By computing the character of the representation at each layer, we obtain a
-                    &ldquo;symmetry fingerprint&rdquo; that tracks how group symmetry flows through the network.
-                    This analysis can reveal which layers break symmetry (potentially learning
-                    task-specific features) and which preserve it (ensuring equivariance).
-                </p>
-            </div>
+print("Attn(X)[perm] == Attn(X[perm])?",
+      np.allclose(out_then_perm, out_after_perm))
+print("Self-attention IS permutation equivariant")
+`} />
+                            </Reading>
+                        ),
+                    },
+                    {
+                        id: 'exercise', label: 'Exercise', icon: exerciseIcon,
+                        content: (
+                            <CodingExercise bare title="Exercise: Test Permutation Equivariance"
+                                prompt="Implement a general test for permutation equivariance and apply it to different layer types."
+                                starterCode={APPS_EXERCISE.starter}
+                                checks={APPS_EXERCISE.checks}
+                                solution={APPS_EXERCISE.solution}
+                            />
+                        ),
+                    },
+                    { id: 'quiz', label: 'Quiz', icon: quizIcon, content: <Quiz bare questions={APPS_QUIZ} title="Check: Symmetry in Transformers" /> },
+                ]} />
+            </Card>
         </div>
     );
 }
 
-export function TransformerApplications() {
-    return (
-        <div className="prose prose-slate max-w-none mt-12">
-            <h2 className="text-2xl font-bold text-indigo-700 border-b-2 border-indigo-200 pb-2 mb-4">
-                Applications to Transformers
-            </h2>
-
-            <p>
-                Why do we care about groups and representations in Transformers? The answer lies in <strong>invariance</strong> and <strong>equivariance</strong>.
-                If our data has an underlying symmetry (like permutation invariance in a set of objects, or translation invariance in an image), we want our neural network to understand and respect that symmetry.
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-6">
-                <div className="bg-amber-50 border-l-4 border-amber-400 p-4">
-                    <h4 className="font-bold text-amber-800 mb-2">Positional Encodings</h4>
-                    <p className="text-sm text-amber-900">
-                        In standard Transformers, the self-attention mechanism is permutation equivariant: it treats the sequence as a set. To handle sequential data (where order matters), we inject positional information.
-                        From a group theory perspective, this breaks the full permutation symmetry <Latex>{'$S_n$'}</Latex> allowing the model to distinguish positions.
-                    </p>
-                </div>
-                <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
-                    <h4 className="font-bold text-blue-800 mb-2">Equivariant Self-Attention</h4>
-                    <p className="text-sm text-blue-900">
-                        Recent research explores <strong>Group Equivariant Transformers</strong>. Instead of just scalar features, the neurons transform according to a specific group representation (e.g., rotation group <Latex>{'$SO(3)$'}</Latex> for 3D point clouds).
-                        This guarantees that if the input rotates, the internal features simply rotate accordingly without distortion.
-                    </p>
-                </div>
-            </div>
-
-            <p>
-                By defining the attention mechanism as a map between representation spaces, we can mathematically prove constraints on the weight matrices (like <Latex>{'$W_Q, W_K, W_V$'}</Latex>) that enforce these symmetries, leading to more data-efficient and robust models.
-            </p>
-        </div>
-    );
-}
+/* ════════════════════════════════════════════════════════════════════════════
+   Backward-compatible default export
+   ════════════════════════════════════════════════════════════════════════════ */
 
 export default function GroupTheoryContent() {
     return (
-        <div className="space-y-12">
-            <BasicGroupConcepts />
-            <GroupsSubgroupsCosets />
-            <GroupHomomorphisms />
-            <RepresentationTheory />
-            <CharacterTheory />
-            <TransformerApplications />
+        <div className="space-y-10">
+            <BasicConceptsContent />
+            <RepresentationTheoryContent />
+            <ApplicationsContent />
         </div>
     );
 }

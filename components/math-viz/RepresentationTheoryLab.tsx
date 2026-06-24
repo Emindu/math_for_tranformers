@@ -1,318 +1,221 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import Latex from 'react-latex-next';
-import 'katex/dist/katex.min.css';
 
-// ── Cyclic Group Representation Data ────────────────────────────────────────────
-interface CyclicGroupDef {
-    n: number;
-    name: string;
-    latex: string;
-    elements: string[];
-}
+/* ────────────────────────────────────────────────────────────────────────────
+   Representation Theory Lab — pure SVG, no framer-motion, no Three.js
+   Shows cyclic group representations on the complex plane.
+   ──────────────────────────────────────────────────────────────────────────── */
 
-const CYCLIC_GROUPS: CyclicGroupDef[] = [
-    { n: 3, name: "C₃", latex: "$C_3$", elements: ["e", "g", "g²"] },
-    { n: 4, name: "C₄", latex: "$C_4$", elements: ["e", "g", "g²", "g³"] },
-    { n: 6, name: "C₆", latex: "$C_6$", elements: ["e", "g", "g²", "g³", "g⁴", "g⁵"] },
-    { n: 8, name: "C₈", latex: "$C_8$", elements: ["e", "g", "g²", "g³", "g⁴", "g⁵", "g⁶", "g⁷"] },
+const CYCLIC_GROUPS = [
+    { n: 3, name: 'C₃', elements: ['e', 'g', 'g²'] },
+    { n: 4, name: 'C₄', elements: ['e', 'g', 'g²', 'g³'] },
+    { n: 5, name: 'C₅', elements: ['e', 'g', 'g²', 'g³', 'g⁴'] },
+    { n: 6, name: 'C₆', elements: ['e', 'g', 'g²', 'g³', 'g⁴', 'g⁵'] },
 ];
 
-// Colors for elements
-const ELEMENT_COLORS = [
-    "#6366f1", "#8b5cf6", "#a855f7", "#ec4899",
-    "#f43f5e", "#f59e0b", "#10b981", "#06b6d4",
+const POINT_COLORS = [
+    '#6366f1', '#ec4899', '#f59e0b', '#10b981',
+    '#ef4444', '#06b6d4', '#8b5cf6', '#84cc16',
 ];
 
-// ── Complex Plane Visualization ─────────────────────────────────────────────────
-function ComplexPlaneViz({ n, selectedK, hoveredElement }: {
-    n: number;
-    selectedK: number;
-    hoveredElement: number | null;
-}) {
-    const size = 300;
-    const cx = size / 2;
-    const cy = size / 2;
-    const radius = 110;
+const W = 360, H = 360, CX = 180, CY = 180, RADIUS = 130;
 
-    // Compute nth roots of unity for representation k: ρ_k(g^j) = e^(2πijk/n)
-    const points = useMemo(() => {
-        return Array.from({ length: n }, (_, j) => {
-            const angle = (2 * Math.PI * j * selectedK) / n;
-            return {
-                x: cx + radius * Math.cos(angle - Math.PI / 2),
-                y: cy + radius * Math.sin(angle - Math.PI / 2),
-                angle,
-                real: Math.cos(angle),
-                imag: Math.sin(angle),
-            };
-        });
-    }, [n, selectedK, cx, cy]);
-
-    return (
-        <svg width={size} height={size} className="mx-auto">
-            {/* Background */}
-            <rect width={size} height={size} fill="#0f172a" rx={12} />
-
-            {/* Grid lines */}
-            <line x1={cx} y1={10} x2={cx} y2={size - 10} stroke="#1e293b" strokeWidth={1} />
-            <line x1={10} y1={cy} x2={size - 10} y2={cy} stroke="#1e293b" strokeWidth={1} />
-
-            {/* Unit circle */}
-            <circle cx={cx} cy={cy} r={radius} fill="none" stroke="#334155" strokeWidth={1.5} strokeDasharray="4 3" />
-
-            {/* Axis labels */}
-            <text x={size - 18} y={cy - 8} fill="#64748b" fontSize={10} textAnchor="middle">Re</text>
-            <text x={cx + 12} y={18} fill="#64748b" fontSize={10} textAnchor="start">Im</text>
-
-            {/* Connecting polygon */}
-            {n > 1 && (
-                <motion.polygon
-                    points={points.map(p => `${p.x},${p.y}`).join(" ")}
-                    fill="none"
-                    stroke="#6366f1"
-                    strokeWidth={1}
-                    strokeOpacity={0.4}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.4 }}
-                />
-            )}
-
-            {/* Arrow from origin to hovered point */}
-            {hoveredElement !== null && (
-                <motion.line
-                    x1={cx} y1={cy}
-                    x2={points[hoveredElement].x}
-                    y2={points[hoveredElement].y}
-                    stroke="#f59e0b"
-                    strokeWidth={2}
-                    markerEnd="url(#repArrow)"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                />
-            )}
-
-            {/* Arrow marker */}
-            <defs>
-                <marker id="repArrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-                    <path d="M0,0 L8,3 L0,6 Z" fill="#f59e0b" />
-                </marker>
-            </defs>
-
-            {/* Points */}
-            {points.map((p, i) => {
-                const isHovered = hoveredElement === i;
-                const color = ELEMENT_COLORS[i % ELEMENT_COLORS.length];
-                return (
-                    <motion.g key={`${n}-${selectedK}-${i}`}>
-                        <motion.circle
-                            cx={p.x} cy={p.y} r={isHovered ? 10 : 7}
-                            fill={color}
-                            stroke={isHovered ? "#f59e0b" : "transparent"}
-                            strokeWidth={2.5}
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ delay: i * 0.05, type: "spring" }}
-                        />
-                        {isHovered && (
-                            <text x={p.x} y={p.y - 16}
-                                textAnchor="middle" fill="#e2e8f0" fontSize={9} fontWeight="bold">
-                                {p.real.toFixed(2)} + {p.imag.toFixed(2)}i
-                            </text>
-                        )}
-                    </motion.g>
-                );
-            })}
-
-            {/* Title */}
-            <text x={cx} y={size - 10} textAnchor="middle" fill="#94a3b8" fontSize={10}>
-                ρ_{selectedK}(g) = e^(2πi·{selectedK}/{n})
-            </text>
-        </svg>
-    );
+function polarToSvg(angle: number): [number, number] {
+    return [CX + RADIUS * Math.cos(angle), CY - RADIUS * Math.sin(angle)];
 }
 
-// ── Matrix Display ──────────────────────────────────────────────────────────────
-function MatrixRepView({ n, selectedK, hoveredElement }: {
-    n: number;
-    selectedK: number;
-    hoveredElement: number | null;
-}) {
-    const activeIdx = hoveredElement ?? 0;
-    const angle = (2 * Math.PI * activeIdx * selectedK) / n;
-    const cos = Math.cos(angle);
-    const sin = Math.sin(angle);
-
-    const fmt = (v: number) => {
-        if (Math.abs(v) < 1e-10) return "0";
-        if (Math.abs(v - 1) < 1e-10) return "1";
-        if (Math.abs(v + 1) < 1e-10) return "-1";
-        return v.toFixed(3);
-    };
-
-    return (
-        <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
-            <div className="text-center text-slate-400 text-xs mb-3">
-                2D Rotation Matrix for <span className="text-white font-bold">
-                    g{activeIdx > 0 ? `^${activeIdx}` : " (identity)"}
-                </span>
-            </div>
-            <div className="flex justify-center">
-                <div className="relative">
-                    {/* Matrix brackets */}
-                    <div className="flex items-center gap-1">
-                        <span className="text-slate-400 text-2xl font-light">[</span>
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                            <motion.span
-                                key={`cos-${activeIdx}`}
-                                className="text-emerald-400 font-mono text-sm text-right"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                            >
-                                {fmt(cos)}
-                            </motion.span>
-                            <motion.span
-                                key={`nsin-${activeIdx}`}
-                                className="text-rose-400 font-mono text-sm text-right"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                            >
-                                {fmt(-sin)}
-                            </motion.span>
-                            <motion.span
-                                key={`sin-${activeIdx}`}
-                                className="text-rose-400 font-mono text-sm text-right"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                            >
-                                {fmt(sin)}
-                            </motion.span>
-                            <motion.span
-                                key={`cos2-${activeIdx}`}
-                                className="text-emerald-400 font-mono text-sm text-right"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                            >
-                                {fmt(cos)}
-                            </motion.span>
-                        </div>
-                        <span className="text-slate-400 text-2xl font-light">]</span>
-                    </div>
-                </div>
-            </div>
-            <div className="text-center text-slate-500 text-[10px] mt-3">
-                θ = 2π · {activeIdx} · {selectedK} / {n} = {(angle * 180 / Math.PI).toFixed(1)}°
-            </div>
-        </div>
-    );
-}
-
-// ── Main Lab Component ──────────────────────────────────────────────────────────
 export default function RepresentationTheoryLab() {
-    const [groupIdx, setGroupIdx] = useState(1); // default C₄
-    const [selectedK, setSelectedK] = useState(1);
-    const [hoveredElement, setHoveredElement] = useState<number | null>(null);
+    const [groupIdx, setGroupIdx] = useState(0);
+    const [k, setK] = useState(1);
+    const [hovered, setHovered] = useState<number | null>(null);
 
     const group = CYCLIC_GROUPS[groupIdx];
+    const n = group.n;
+    const kClamped = Math.min(k, n - 1);
 
-    // Reset k when switching groups
+    /* ρ_k(g^j) = e^(2πijk/n) */
+    const points = useMemo(() => {
+        return Array.from({ length: n }, (_, j) => {
+            const angle = (2 * Math.PI * j * kClamped) / n;
+            const re = Math.cos(angle);
+            const im = Math.sin(angle);
+            const [sx, sy] = polarToSvg(angle);
+            return { j, re, im, sx, sy, angle };
+        });
+    }, [n, kClamped]);
+
     const handleGroupChange = (idx: number) => {
         setGroupIdx(idx);
-        setSelectedK(1);
-        setHoveredElement(null);
+        setK(1);
+        setHovered(null);
     };
 
     return (
-        <div className="p-6 bg-slate-50 rounded-xl border border-slate-200 shadow-sm">
-            {/* Header */}
-            <div className="mb-5">
-                <h3 className="text-xl font-bold text-slate-800">Representation Explorer</h3>
-                <p className="text-sm text-slate-600 mt-1">
-                    Visualize how cyclic group elements map to rotations in the complex plane
-                </p>
-            </div>
+        <div className="flex flex-col lg:flex-row gap-6 p-6 bg-slate-50 rounded-xl border border-slate-200">
 
-            {/* Group selector */}
-            <div className="flex flex-wrap gap-2 mb-4">
-                {CYCLIC_GROUPS.map((g, i) => (
-                    <button
-                        key={i}
-                        onClick={() => handleGroupChange(i)}
-                        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${groupIdx === i
-                                ? 'bg-indigo-600 text-white shadow-md'
-                                : 'bg-white text-slate-700 border border-slate-200 hover:border-indigo-300'
-                            }`}
-                    >
-                        {g.name}
-                    </button>
-                ))}
-            </div>
-
-            {/* Representation k selector */}
-            <div className="mb-5">
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 block">
-                    Representation <Latex>{`$\\rho_{${selectedK}}$`}</Latex>
-                    <span className="text-slate-400 font-normal lowercase ml-1">(k = {selectedK})</span>
-                </label>
-                <div className="flex flex-wrap gap-1.5">
-                    {Array.from({ length: group.n }, (_, k) => (
-                        <button
-                            key={k}
-                            onClick={() => { setSelectedK(k); setHoveredElement(null); }}
-                            className={`w-8 h-8 rounded-md text-xs font-bold transition-all ${selectedK === k
-                                    ? 'bg-violet-600 text-white shadow-sm'
-                                    : 'bg-white text-slate-600 border border-slate-200 hover:border-violet-300'
-                                }`}
-                        >
-                            {k}
-                        </button>
-                    ))}
+            {/* ── Left panel ── */}
+            <div className="w-full lg:w-64 shrink-0 space-y-4">
+                <div>
+                    <h3 className="text-lg font-bold text-slate-800">Representation Theory Lab</h3>
+                    <p className="text-xs text-slate-500 mt-1">
+                        Explore ρ_k: C_n → GL(ℂ) — cyclic group reps on the complex plane.
+                    </p>
                 </div>
-            </div>
 
-            {/* Complex plane */}
-            <div className="mb-4">
-                <ComplexPlaneViz n={group.n} selectedK={selectedK} hoveredElement={hoveredElement} />
-            </div>
-
-            {/* Element list */}
-            <div className="bg-white p-3 rounded-lg border border-slate-200 mb-4">
-                <div className="text-xs font-semibold text-slate-500 mb-2">Group Elements — hover to highlight</div>
-                <div className="flex flex-wrap gap-1.5">
-                    {group.elements.map((el, i) => (
-                        <motion.button
-                            key={i}
-                            onMouseEnter={() => setHoveredElement(i)}
-                            onMouseLeave={() => setHoveredElement(null)}
-                            className="px-3 py-1.5 rounded-md text-xs font-mono font-bold transition-all border"
-                            style={{
-                                backgroundColor: hoveredElement === i ? ELEMENT_COLORS[i % ELEMENT_COLORS.length] : '#f8fafc',
-                                color: hoveredElement === i ? '#fff' : '#475569',
-                                borderColor: hoveredElement === i ? ELEMENT_COLORS[i % ELEMENT_COLORS.length] : '#e2e8f0',
-                            }}
-                            whileHover={{ scale: 1.05 }}
-                        >
-                            {el}
-                        </motion.button>
-                    ))}
+                {/* Group selector */}
+                <div className="bg-white rounded-xl border border-slate-200 p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Group</p>
+                    <div className="grid grid-cols-2 gap-2">
+                        {CYCLIC_GROUPS.map((g, i) => (
+                            <button
+                                key={i}
+                                onClick={() => handleGroupChange(i)}
+                                className={`rounded-lg border py-2 text-sm font-bold transition-colors ${groupIdx === i
+                                    ? 'border-indigo-400 bg-indigo-50 text-indigo-700'
+                                    : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-indigo-300'
+                                    }`}
+                            >
+                                {g.name}
+                            </button>
+                        ))}
+                    </div>
                 </div>
+
+                {/* k slider */}
+                <div className="bg-white rounded-xl border border-slate-200 p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">
+                        Representation ρ_k  (k = {kClamped})
+                    </p>
+                    <input
+                        type="range" min={0} max={n - 1} step={1}
+                        value={kClamped}
+                        onChange={e => setK(parseInt(e.target.value))}
+                        className="w-full accent-indigo-600"
+                    />
+                    <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+                        <span>k=0 (trivial)</span><span>k={n - 1}</span>
+                    </div>
+                    <div className="mt-3 bg-indigo-50 rounded-lg p-2 text-center">
+                        <p className="text-xs text-indigo-700 font-mono">
+                            ρ_{kClamped}(g^j) = e^(2πij·{kClamped}/{n})
+                        </p>
+                    </div>
+                </div>
+
+                {/* Representation table */}
+                <div className="bg-white rounded-xl border border-slate-200 p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Values</p>
+                    <div className="space-y-1">
+                        {points.map(pt => (
+                            <div
+                                key={pt.j}
+                                className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs transition-colors cursor-pointer ${hovered === pt.j ? 'bg-indigo-50' : 'hover:bg-slate-50'}`}
+                                onMouseEnter={() => setHovered(pt.j)}
+                                onMouseLeave={() => setHovered(null)}
+                            >
+                                <span
+                                    className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
+                                    style={{ background: POINT_COLORS[pt.j % POINT_COLORS.length] }}
+                                />
+                                <span className="font-mono text-slate-600 w-8">{group.elements[pt.j]}</span>
+                                <span className="font-mono text-slate-500 text-[10px]">
+                                    {pt.re.toFixed(3)}{pt.im >= 0 ? '+' : ''}{pt.im.toFixed(3)}i
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {kClamped === 0 && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                        <p className="text-xs font-bold text-amber-700">Trivial representation</p>
+                        <p className="text-xs text-amber-600 mt-1">All elements map to 1. Every group has this as irrep ρ₀.</p>
+                    </div>
+                )}
             </div>
 
-            {/* Matrix representation */}
-            <MatrixRepView n={group.n} selectedK={selectedK} hoveredElement={hoveredElement} />
+            {/* ── SVG canvas ── */}
+            <div className="flex-1 bg-white rounded-xl border border-slate-200 overflow-hidden flex items-center justify-center min-h-[360px]">
+                <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
 
-            {/* Insight */}
-            <div className="mt-5 p-3 bg-indigo-50 border border-indigo-100 rounded-lg text-sm text-indigo-800">
-                <p>
-                    <strong>Observation:</strong> When <Latex>{"$k = 0$"}</Latex>, every element maps to
-                    the identity — the <em>trivial representation</em>. When <Latex>{"$k = 1$"}</Latex>, you get
-                    the <em>standard representation</em> where <Latex>{"$g$"}</Latex> rotates
-                    by <Latex>{`$2\\pi/${group.n}$`}</Latex>. Try different values of <em>k</em> to see how
-                    the same group can be represented in multiple ways!
-                </p>
+                    {/* Axes */}
+                    <line x1={10} y1={CY} x2={W - 10} y2={CY} stroke="#e2e8f0" strokeWidth={1} />
+                    <line x1={CX} y1={10} x2={CX} y2={H - 10} stroke="#e2e8f0" strokeWidth={1} />
+
+                    {/* Axis labels */}
+                    <text x={W - 15} y={CY - 6} textAnchor="end" fill="#94a3b8" fontSize={10}>Re</text>
+                    <text x={CX + 6} y={16} fill="#94a3b8" fontSize={10}>Im</text>
+
+                    {/* Unit circle */}
+                    <circle cx={CX} cy={CY} r={RADIUS} fill="none" stroke="#e2e8f0" strokeWidth={1.5} />
+
+                    {/* Unit labels on axes */}
+                    <text x={CX + RADIUS + 4} y={CY + 4} fill="#94a3b8" fontSize={9}>1</text>
+                    <text x={CX - RADIUS - 4} y={CY + 4} textAnchor="end" fill="#94a3b8" fontSize={9}>-1</text>
+                    <text x={CX + 3} y={CY - RADIUS - 4} fill="#94a3b8" fontSize={9}>i</text>
+                    <text x={CX + 3} y={CY + RADIUS + 12} fill="#94a3b8" fontSize={9}>-i</text>
+
+                    {/* Lines from origin to each point */}
+                    {points.map(pt => {
+                        const color = POINT_COLORS[pt.j % POINT_COLORS.length];
+                        const hl = hovered === pt.j;
+                        return (
+                            <line
+                                key={pt.j}
+                                x1={CX} y1={CY} x2={pt.sx} y2={pt.sy}
+                                stroke={color}
+                                strokeWidth={hl ? 2.5 : 1.5}
+                                opacity={hovered !== null && !hl ? 0.25 : 0.7}
+                            />
+                        );
+                    })}
+
+                    {/* Points */}
+                    {points.map(pt => {
+                        const color = POINT_COLORS[pt.j % POINT_COLORS.length];
+                        const hl = hovered === pt.j;
+                        return (
+                            <g
+                                key={pt.j}
+                                onMouseEnter={() => setHovered(pt.j)}
+                                onMouseLeave={() => setHovered(null)}
+                                style={{ cursor: 'pointer' }}
+                            >
+                                <circle
+                                    cx={pt.sx} cy={pt.sy} r={hl ? 12 : 9}
+                                    fill={color}
+                                    stroke="white" strokeWidth={2}
+                                    opacity={hovered !== null && !hl ? 0.3 : 1}
+                                />
+                                <text x={pt.sx} y={pt.sy} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize={9} fontWeight="bold">
+                                    {group.elements[pt.j]}
+                                </text>
+                            </g>
+                        );
+                    })}
+
+                    {/* Origin dot */}
+                    <circle cx={CX} cy={CY} r={4} fill="#475569" />
+
+                    {/* Hover label */}
+                    {hovered !== null && (() => {
+                        const pt = points[hovered];
+                        return (
+                            <g>
+                                <rect x={CX - 90} y={H - 35} width={180} height={26} rx={6} fill="#1e293b" fillOpacity={0.88} />
+                                <text x={CX} y={H - 17} textAnchor="middle" fill="white" fontSize={10}>
+                                    {group.elements[pt.j]}: {pt.re.toFixed(3)}{pt.im >= 0 ? '+' : ''}{pt.im.toFixed(3)}i
+                                </text>
+                            </g>
+                        );
+                    })()}
+
+                    {/* Title */}
+                    <text x={CX} y={15} textAnchor="middle" fill="#64748b" fontSize={11} fontWeight="600">
+                        ρ_{kClamped} on {group.name}
+                    </text>
+                </svg>
             </div>
         </div>
     );

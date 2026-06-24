@@ -1,398 +1,326 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Grid, Text, Line } from '@react-three/drei';
-import * as THREE from 'three';
-import Latex from 'react-latex-next';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import 'katex/dist/katex.min.css';
-import { Maximize2, X, RotateCw } from 'lucide-react';
 
-// Arrow component
-function Arrow({ start, end, color, label, lineWidth = 3 }: {
-    start: [number, number, number],
-    end: [number, number, number],
-    color: string,
-    label?: string,
-    lineWidth?: number
+/* ── Math helpers ──────────────────────────────────────────────────────── */
+
+function applyM(m: number[][], x: number, y: number): [number, number] {
+    return [m[0][0]*x + m[0][1]*y, m[1][0]*x + m[1][1]*y];
+}
+
+/* ── SVG helpers ───────────────────────────────────────────────────────── */
+
+const W = 560, H = 420, S = 50, CX = W/2, CY = H/2;
+
+function sv(x: number, y: number): [number, number] {
+    return [CX + x*S, CY - y*S];
+}
+
+function applyAndSv(m: number[][], x: number, y: number): [number, number] {
+    const [tx, ty] = applyM(m, x, y);
+    return sv(tx, ty);
+}
+
+function Arrow({ x1, y1, x2, y2, color, label, width = 2.5, dashed = false, opacity = 1 }: {
+    x1: number; y1: number; x2: number; y2: number;
+    color: string; label?: string; dashed?: boolean; width?: number; opacity?: number;
 }) {
-    const startVec = new THREE.Vector3(...start);
-    const endVec = new THREE.Vector3(...end);
-    const length = endVec.distanceTo(startVec);
-    if (length < 0.05) return null;
-
+    const dx = x2-x1, dy = y2-y1, len = Math.hypot(dx, dy);
+    if (len < 4) return null;
+    const ang = Math.atan2(dy, dx), hs = 11, ha = 0.38;
+    const ux = dx/len, uy = dy/len;
     return (
-        <group>
-            <Line points={[startVec, endVec]} color={color} lineWidth={lineWidth} />
-            <mesh position={endVec}>
-                <sphereGeometry args={[0.08, 16, 16]} />
-                <meshStandardMaterial color={color} />
-            </mesh>
+        <g opacity={opacity}>
+            <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={color}
+                strokeWidth={dashed ? 1.5 : width}
+                strokeDasharray={dashed ? "6,4" : undefined} strokeLinecap="round" />
+            {!dashed && (
+                <polygon fill={color}
+                    points={`${x2},${y2} ${x2-hs*Math.cos(ang-ha)},${y2-hs*Math.sin(ang-ha)} ${x2-hs*Math.cos(ang+ha)},${y2-hs*Math.sin(ang+ha)}`} />
+            )}
             {label && (
-                <Text
-                    position={endVec.clone().add(new THREE.Vector3(0.2, 0.15, 0))}
-                    fontSize={0.22}
-                    color={color}
-                    outlineWidth={0.02}
-                    outlineColor="#000"
-                    fontWeight="bold"
-                >
-                    {label}
-                </Text>
+                <text x={x2+ux*18} y={y2-uy*10} fill={color} fontSize={12} fontWeight="700" textAnchor="middle" dominantBaseline="middle">{label}</text>
             )}
-        </group>
+        </g>
     );
 }
 
-// Spectral decomposition visualization
-function SpectralVisualization({
-    eigenvalue1, eigenvalue2, angle, showSteps, currentStep, testVector
-}: {
-    eigenvalue1: number, eigenvalue2: number, angle: number, showSteps: boolean, currentStep: number, testVector: [number, number]
-}) {
-    // Rotation matrix U (orthogonal)
-    const cosA = Math.cos(angle);
-    const sinA = Math.sin(angle);
+/* ── Grid renderer ─────────────────────────────────────────────────────── */
 
-    // U matrix (rotation by angle)
-    const U = [[cosA, -sinA], [sinA, cosA]];
-    // U* (transpose for real case)
-    const Ut = [[cosA, sinA], [-sinA, cosA]];
-    // Lambda (diagonal scaling)
-    const Lambda = [[eigenvalue1, 0], [0, eigenvalue2]];
+const GRID = [-4,-3,-2,-1,0,1,2,3,4];
 
-    // Compute T = U * Lambda * U^T
-    // First: Lambda * U^T
-    const LambdaUt = [
-        [Lambda[0][0] * Ut[0][0], Lambda[0][0] * Ut[0][1]],
-        [Lambda[1][1] * Ut[1][0], Lambda[1][1] * Ut[1][1]]
-    ];
-    // Then: U * (Lambda * U^T)
-    const T = [
-        [U[0][0] * LambdaUt[0][0] + U[0][1] * LambdaUt[1][0], U[0][0] * LambdaUt[0][1] + U[0][1] * LambdaUt[1][1]],
-        [U[1][0] * LambdaUt[0][0] + U[1][1] * LambdaUt[1][0], U[1][0] * LambdaUt[0][1] + U[1][1] * LambdaUt[1][1]]
-    ];
-
-    // Eigenvectors (columns of U)
-    const v1: [number, number, number] = [U[0][0] * 2, U[1][0] * 2, 0];
-    const v2: [number, number, number] = [U[0][1] * 2, U[1][1] * 2, 0];
-
-    // Test vector transformation through steps
-    const v = testVector;
-
-    // Step 1: Original vector
-    const step0 = v;
-
-    // Step 1: U^T * v (rotate into eigenbasis)
-    const step1: [number, number] = [Ut[0][0] * v[0] + Ut[0][1] * v[1], Ut[1][0] * v[0] + Ut[1][1] * v[1]];
-
-    // Step 2: Lambda * (U^T * v) (scale in eigenbasis)
-    const step2: [number, number] = [eigenvalue1 * step1[0], eigenvalue2 * step1[1]];
-
-    // Step 3: U * Lambda * U^T * v (rotate back)
-    const step3: [number, number] = [U[0][0] * step2[0] + U[0][1] * step2[1], U[1][0] * step2[0] + U[1][1] * step2[1]];
-
-    // Grid in eigenbasis
-    const eigenbasisGrid = useMemo(() => {
-        const lines: React.ReactNode[] = [];
-        for (let i = -5; i <= 5; i++) {
-            // Lines along eigenvector 1 direction
-            const start1 = new THREE.Vector3(U[0][0] * i * 0.5, U[1][0] * i * 0.5, -0.05);
-            const end1 = start1.clone().add(new THREE.Vector3(U[0][1] * 5, U[1][1] * 5, 0));
-            const start1b = start1.clone().sub(new THREE.Vector3(U[0][1] * 5, U[1][1] * 5, 0));
-            lines.push(<Line key={`eg1-${i}`} points={[start1b, end1]} color="#8b5cf6" lineWidth={0.5} opacity={0.3} transparent />);
-
-            // Lines along eigenvector 2 direction
-            const start2 = new THREE.Vector3(U[0][1] * i * 0.5, U[1][1] * i * 0.5, -0.05);
-            const end2 = start2.clone().add(new THREE.Vector3(U[0][0] * 5, U[1][0] * 5, 0));
-            const start2b = start2.clone().sub(new THREE.Vector3(U[0][0] * 5, U[1][0] * 5, 0));
-            lines.push(<Line key={`eg2-${i}`} points={[start2b, end2]} color="#8b5cf6" lineWidth={0.5} opacity={0.3} transparent />);
-        }
-        return lines;
-    }, [U]);
-
+function Grid({ matrix, opacity = 1, ghost = false }: { matrix: number[][], opacity?: number, ghost?: boolean }) {
     return (
-        <group>
-            {/* Eigenbasis grid (rotated) */}
-            {eigenbasisGrid}
-
-            {/* Eigenvector axes */}
-            <Line
-                points={[new THREE.Vector3(-v1[0], -v1[1], 0), new THREE.Vector3(v1[0], v1[1], 0)]}
-                color="#3b82f6"
-                lineWidth={2}
-            />
-            <Line
-                points={[new THREE.Vector3(-v2[0], -v2[1], 0), new THREE.Vector3(v2[0], v2[1], 0)]}
-                color="#ef4444"
-                lineWidth={2}
-            />
-
-            {/* Eigenvector labels */}
-            <Arrow start={[0, 0, 0]} end={v1} color="#3b82f6" label={`v₁ (λ₁=${eigenvalue1.toFixed(1)})`} lineWidth={4} />
-            <Arrow start={[0, 0, 0]} end={v2} color="#ef4444" label={`v₂ (λ₂=${eigenvalue2.toFixed(1)})`} lineWidth={4} />
-
-            {/* Step-by-step transformation */}
-            {showSteps ? (
-                <group>
-                    {/* Original vector (always shown) */}
-                    <Arrow start={[0, 0, 0]} end={[step0[0], step0[1], 0]} color="#22c55e" label="v" lineWidth={3} />
-
-                    {/* Step 1: After U^T (in eigenbasis) - shown as intermediate */}
-                    {currentStep >= 1 && (
-                        <Arrow start={[0, 0, 0]} end={[step1[0], step1[1], 0]} color="#f59e0b" label="U*v" lineWidth={3} />
-                    )}
-
-                    {/* Step 2: After scaling by Lambda */}
-                    {currentStep >= 2 && (
-                        <Arrow start={[0, 0, 0]} end={[step2[0], step2[1], 0]} color="#ec4899" label="ΛU*v" lineWidth={3} />
-                    )}
-
-                    {/* Step 3: Final result after U rotation */}
-                    {currentStep >= 3 && (
-                        <Arrow start={[0, 0, 0]} end={[step3[0], step3[1], 0]} color="#06b6d4" label="Tv" lineWidth={4} />
-                    )}
-                </group>
-            ) : (
-                <group>
-                    {/* Just show input and output */}
-                    <Arrow start={[0, 0, 0]} end={[step0[0], step0[1], 0]} color="#22c55e" label="v" lineWidth={3} />
-                    <Arrow start={[0, 0, 0]} end={[step3[0], step3[1], 0]} color="#06b6d4" label="Tv" lineWidth={4} />
-                </group>
-            )}
-
-            {/* Legend */}
-            <Text position={[-3.5, 3, 0]} fontSize={0.18} color="#3b82f6" anchorX="left">Blue: Eigenvector v₁</Text>
-            <Text position={[-3.5, 2.7, 0]} fontSize={0.18} color="#ef4444" anchorX="left">Red: Eigenvector v₂</Text>
-            <Text position={[-3.5, 2.4, 0]} fontSize={0.18} color="#22c55e" anchorX="left">Green: Input vector v</Text>
-            <Text position={[-3.5, 2.1, 0]} fontSize={0.18} color="#06b6d4" anchorX="left">Cyan: Output Tv</Text>
-        </group>
+        <g opacity={opacity}>
+            {GRID.map(y => {
+                const [x1,y1] = ghost ? sv(-4.5,y) : applyAndSv(matrix, -4.5, y);
+                const [x2,y2] = ghost ? sv(4.5,y) : applyAndSv(matrix, 4.5, y);
+                const isAxis = y === 0;
+                return <line key={`h${y}`} x1={x1} y1={y1} x2={x2} y2={y2}
+                    stroke={ghost ? '#cbd5e1' : (isAxis ? '#6366f1' : '#c7d2fe')}
+                    strokeWidth={isAxis ? (ghost ? 1 : 1.8) : 0.7} />;
+            })}
+            {GRID.map(x => {
+                const [x1,y1] = ghost ? sv(x,-4.5) : applyAndSv(matrix, x, -4.5);
+                const [x2,y2] = ghost ? sv(x,4.5) : applyAndSv(matrix, x, 4.5);
+                const isAxis = x === 0;
+                return <line key={`v${x}`} x1={x1} y1={y1} x2={x2} y2={y2}
+                    stroke={ghost ? '#cbd5e1' : (isAxis ? '#e11d48' : '#fecdd3')}
+                    strokeWidth={isAxis ? (ghost ? 1 : 1.8) : 0.7} />;
+            })}
+        </g>
     );
 }
 
-// Matrix display component
-function MatrixDisplay({ matrix, label, highlight }: { matrix: number[][], label: string, highlight?: string }) {
-    return (
-        <div className={`p-2 rounded-lg border ${highlight || 'bg-white border-slate-200'}`}>
-            <div className="text-xs text-slate-500 mb-1">{label}</div>
-            <div className="font-mono text-sm grid grid-cols-2 gap-1">
-                <span className="text-center">{matrix[0][0].toFixed(2)}</span>
-                <span className="text-center">{matrix[0][1].toFixed(2)}</span>
-                <span className="text-center">{matrix[1][0].toFixed(2)}</span>
-                <span className="text-center">{matrix[1][1].toFixed(2)}</span>
-            </div>
-        </div>
-    );
-}
+/* ── Step descriptions ─────────────────────────────────────────────────── */
+
+const STEP_INFO = [
+    { title: 'Start: v in standard basis', desc: 'Your input vector v lives in the standard x-y coordinate system.', color: '#6366f1' },
+    { title: 'Step 1 — Rotate into eigenbasis (U*)', desc: 'U* rotates v to align with the eigenvectors. In this new frame, the transformation is just scaling.', color: '#f59e0b' },
+    { title: 'Step 2 — Scale along each axis (Λ)', desc: 'Λ independently scales the x-component by λ₁ and y-component by λ₂. No mixing!', color: '#ec4899' },
+    { title: 'Step 3 — Rotate back (U)', desc: 'U rotates back to the standard basis. This is the final result T(v).', color: '#0891b2' },
+];
+
+/* ── Presets ───────────────────────────────────────────────────────────── */
+
+const PRESETS = [
+    { name: 'Stretch',       λ1: 2,   λ2: 0.5,  θ: 45 },
+    { name: 'Big Stretch',   λ1: 3,   λ2: 0.3,  θ: 30 },
+    { name: 'Uniform Scale', λ1: 1.5, λ2: 1.5,  θ: 0  },
+    { name: 'Squeeze',       λ1: 2,   λ2: 0.25, θ: 60 },
+    { name: 'Reflect',       λ1: -1,  λ2: 1,    θ: 45 },
+    { name: 'Contract',      λ1: 0.5, λ2: 0.5,  θ: 20 },
+];
+
+/* ── Main component ────────────────────────────────────────────────────── */
 
 export default function SpectralTheoremLab() {
-    const [eigenvalue1, setEigenvalue1] = useState(2);
-    const [eigenvalue2, setEigenvalue2] = useState(0.5);
-    const [angle, setAngle] = useState(Math.PI / 4); // 45 degrees
-    const [showSteps, setShowSteps] = useState(true);
-    const [currentStep, setCurrentStep] = useState(3);
-    const [testVector, setTestVector] = useState<[number, number]>([1.5, 0.5]);
-    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [λ1, setλ1] = useState(2);
+    const [λ2, setλ2] = useState(0.5);
+    const [θDeg, setθDeg] = useState(45);
+    const [step, setStep] = useState(3);
+    const [testAngle, setTestAngle] = useState(30); // degrees for test vector
     const [isAnimating, setIsAnimating] = useState(false);
+    const rafRef = useRef<number | null>(null);
 
-    // Compute matrices
-    const cosA = Math.cos(angle);
-    const sinA = Math.sin(angle);
-    const U = [[cosA, -sinA], [sinA, cosA]];
-    const Ut = [[cosA, sinA], [-sinA, cosA]];
-    const Lambda = [[eigenvalue1, 0], [0, eigenvalue2]];
+    const θ = θDeg * Math.PI / 180;
+    const cosθ = Math.cos(θ), sinθ = Math.sin(θ);
 
-    // T = U * Lambda * U^T
-    const LambdaUt = [
-        [Lambda[0][0] * Ut[0][0], Lambda[0][0] * Ut[0][1]],
-        [Lambda[1][1] * Ut[1][0], Lambda[1][1] * Ut[1][1]]
-    ];
-    const T = [
-        [U[0][0] * LambdaUt[0][0] + U[0][1] * LambdaUt[1][0], U[0][0] * LambdaUt[0][1] + U[0][1] * LambdaUt[1][1]],
-        [U[1][0] * LambdaUt[0][0] + U[1][1] * LambdaUt[1][0], U[1][0] * LambdaUt[0][1] + U[1][1] * LambdaUt[1][1]]
-    ];
+    // U = rotation by θ, U* = rotation by -θ
+    const U  = [[cosθ, -sinθ], [sinθ, cosθ]];
+    const Ut = [[cosθ, sinθ], [-sinθ, cosθ]];
+    const Λ  = [[λ1, 0], [0, λ2]];
+
+    // T = U Λ U*
+    const T = useMemo(() => {
+        // T = U * Λ * U*
+        const ΛUt = [[λ1*Ut[0][0], λ1*Ut[0][1]], [λ2*Ut[1][0], λ2*Ut[1][1]]];
+        return [
+            [U[0][0]*ΛUt[0][0]+U[0][1]*ΛUt[1][0], U[0][0]*ΛUt[0][1]+U[0][1]*ΛUt[1][1]],
+            [U[1][0]*ΛUt[0][0]+U[1][1]*ΛUt[1][0], U[1][0]*ΛUt[0][1]+U[1][1]*ΛUt[1][1]],
+        ];
+    }, [λ1, λ2, θ]);
+
+    // Eigenvectors (columns of U)
+    const ev1: [number,number] = [U[0][0], U[1][0]]; // first col
+    const ev2: [number,number] = [U[0][1], U[1][1]]; // second col
+
+    // Test vector
+    const tAng = testAngle * Math.PI / 180;
+    const TEST_LEN = 1.5;
+    const v0: [number,number] = [TEST_LEN*Math.cos(tAng), TEST_LEN*Math.sin(tAng)];
+    const v1r: [number,number] = applyM(Ut, v0[0], v0[1]); // after U*
+    const v2r: [number,number] = [λ1*v1r[0], λ2*v1r[1]];  // after Λ
+    const v3r: [number,number] = applyM(U, v2r[0], v2r[1]);// after U (= T*v)
+
+    // Which vector to show based on step
+    const displayV = [v0, v1r, v2r, v3r][step];
+    const stepColor = STEP_INFO[step].color;
+
+    // Which grid to use
+    const gridMatrix = step === 0 ? [[1,0],[0,1]]
+        : step === 1 ? Ut
+        : step === 2 ? [[λ1,0],[0,λ2]]
+        : T;
+
+    const [ox, oy] = sv(0, 0);
+    const [dvx, dvy] = sv(displayV[0], displayV[1]);
+
+    // Eigenvector arrows (always show in eigenbasis step + final)
+    const [ev1x, ev1y] = sv(ev1[0]*1.5, ev1[1]*1.5);
+    const [ev2x, ev2y] = sv(ev2[0]*1.5, ev2[1]*1.5);
 
     // Animate through steps
-    const animateSteps = () => {
+    const animate = () => {
+        if (isAnimating) return;
         setIsAnimating(true);
-        setCurrentStep(0);
-        let step = 0;
-        const interval = setInterval(() => {
-            step++;
-            setCurrentStep(step);
-            if (step >= 3) {
-                clearInterval(interval);
-                setIsAnimating(false);
-            }
-        }, 1000);
+        setStep(0);
+        let s = 0;
+        const next = () => {
+            s++;
+            setStep(s);
+            if (s < 3) rafRef.current = window.setTimeout(next, 1100) as unknown as number;
+            else setIsAnimating(false);
+        };
+        rafRef.current = window.setTimeout(next, 900) as unknown as number;
     };
+    useEffect(() => () => { if (rafRef.current) clearTimeout(rafRef.current); }, []);
 
-    const presets = [
-        { name: 'Stretch', λ1: 2, λ2: 0.5, θ: Math.PI / 4 },
-        { name: 'Uniform Scale', λ1: 1.5, λ2: 1.5, θ: 0 },
-        { name: 'Squeeze', λ1: 2, λ2: 0.25, θ: Math.PI / 6 },
-        { name: 'Flip', λ1: -1, λ2: 1, θ: 0 },
-        { name: 'Contract', λ1: 0.5, λ2: 0.5, θ: Math.PI / 3 },
-    ];
+    // Matrix formatter
+    const fmt = (m: number[][]) => m.map(r => r.map(v => v.toFixed(2)));
 
-    const vizContent = (
-        <>
-            <color attach="background" args={['#0f172a']} />
-            <OrbitControls makeDefault enableRotate={false} />
-            <ambientLight intensity={0.8} />
-            <pointLight position={[5, 5, 5]} intensity={0.5} />
-            <Grid args={[20, 20]} cellSize={1} cellThickness={0.5} cellColor="#1e293b" sectionSize={5} sectionThickness={0.5} sectionColor="#334155" fadeDistance={25} />
-            <SpectralVisualization
-                eigenvalue1={eigenvalue1}
-                eigenvalue2={eigenvalue2}
-                angle={angle}
-                showSteps={showSteps}
-                currentStep={currentStep}
-                testVector={testVector}
-            />
-        </>
-    );
+    return (
+        <div className="flex flex-col lg:flex-row gap-6 p-6 bg-slate-50 rounded-xl border border-slate-200">
 
-    if (isFullscreen) {
-        return (
-            <div className="fixed inset-0 z-50 bg-slate-900 flex flex-col">
-                <div className="flex items-center justify-between p-3 bg-slate-800 border-b border-slate-700">
-                    <div className="flex items-center gap-4">
-                        <h2 className="text-lg font-bold text-white">Spectral Theorem Lab</h2>
-                        <div className="flex items-center gap-2 text-white text-sm">
-                            <span>λ₁:</span>
-                            <input type="range" min={-2} max={3} step={0.1} value={eigenvalue1} onChange={e => setEigenvalue1(parseFloat(e.target.value))} className="w-20" />
-                            <span className="w-10 font-mono">{eigenvalue1.toFixed(1)}</span>
+            {/* ── Left controls ── */}
+            <div className="w-full lg:w-64 shrink-0 space-y-4">
+                <div>
+                    <h3 className="text-lg font-bold text-slate-800">Spectral Theorem Lab</h3>
+                    <p className="text-xs text-slate-500 mt-1">Explore T = UΛU* — rotate, scale, rotate back.</p>
+                </div>
+
+                {/* Eigenvalues */}
+                <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Eigenvalues (Λ)</p>
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                            <span className="text-blue-600 font-mono text-xs w-6">λ₁</span>
+                            <input type="range" min={-2} max={3} step={0.1} value={λ1}
+                                onChange={e => setλ1(parseFloat(e.target.value))} className="flex-1 accent-blue-600" />
+                            <span className="text-xs font-mono w-10 text-right text-blue-600">{λ1.toFixed(1)}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-white text-sm">
-                            <span>λ₂:</span>
-                            <input type="range" min={-2} max={3} step={0.1} value={eigenvalue2} onChange={e => setEigenvalue2(parseFloat(e.target.value))} className="w-20" />
-                            <span className="w-10 font-mono">{eigenvalue2.toFixed(1)}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-white text-sm">
-                            <span>θ:</span>
-                            <input type="range" min={0} max={Math.PI} step={0.05} value={angle} onChange={e => setAngle(parseFloat(e.target.value))} className="w-20" />
-                            <span className="w-12 font-mono">{(angle * 180 / Math.PI).toFixed(0)}°</span>
+                        <div className="flex items-center gap-2">
+                            <span className="text-red-600 font-mono text-xs w-6">λ₂</span>
+                            <input type="range" min={-2} max={3} step={0.1} value={λ2}
+                                onChange={e => setλ2(parseFloat(e.target.value))} className="flex-1 accent-red-500" />
+                            <span className="text-xs font-mono w-10 text-right text-red-600">{λ2.toFixed(1)}</span>
                         </div>
                     </div>
-                    <button onClick={() => setIsFullscreen(false)} className="p-2 bg-red-600 text-white rounded hover:bg-red-500">
-                        <X size={20} />
-                    </button>
                 </div>
-                <div className="flex-1">
-                    <Canvas camera={{ position: [0, 0, 8], fov: 50 }}>{vizContent}</Canvas>
+
+                {/* Rotation angle */}
+                <div className="bg-white rounded-xl border border-slate-200 p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Eigenbasis Angle (θ)</p>
+                    <input type="range" min={0} max={180} step={1} value={θDeg}
+                        onChange={e => setθDeg(parseInt(e.target.value))} className="w-full accent-violet-600" />
+                    <p className="text-center text-sm font-mono mt-1">{θDeg}° rotation of eigenvectors</p>
                 </div>
-                <div className="p-3 bg-slate-800 border-t border-slate-700 flex items-center justify-between">
-                    <div className="flex gap-2">
-                        {presets.map(p => (
-                            <button key={p.name} onClick={() => { setEigenvalue1(p.λ1); setEigenvalue2(p.λ2); setAngle(p.θ); }} className="px-2 py-1 text-xs bg-violet-600 text-white rounded hover:bg-violet-500">
+
+                {/* Test vector angle */}
+                <div className="bg-white rounded-xl border border-slate-200 p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Test Vector Angle</p>
+                    <input type="range" min={0} max={359} step={1} value={testAngle}
+                        onChange={e => setTestAngle(parseInt(e.target.value))} className="w-full accent-indigo-600" />
+                    <p className="text-center text-xs font-mono mt-1 text-slate-500">{testAngle}°</p>
+                </div>
+
+                {/* Presets */}
+                <div className="bg-white rounded-xl border border-slate-200 p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Presets</p>
+                    <div className="grid grid-cols-2 gap-1.5">
+                        {PRESETS.map(p => (
+                            <button key={p.name} onClick={() => { setλ1(p.λ1); setλ2(p.λ2); setθDeg(p.θ); }}
+                                className="px-2 py-1.5 text-xs font-medium bg-violet-50 text-violet-700 rounded-lg hover:bg-violet-100 transition-colors">
                                 {p.name}
                             </button>
                         ))}
                     </div>
-                    <div className="flex items-center gap-4">
-                        <label className="flex items-center gap-2 text-white text-sm">
-                            <input type="checkbox" checked={showSteps} onChange={e => setShowSteps(e.target.checked)} />
-                            Show Steps
-                        </label>
-                        <button onClick={animateSteps} disabled={isAnimating} className="px-3 py-1 bg-cyan-600 text-white rounded text-sm flex items-center gap-1 hover:bg-cyan-500 disabled:opacity-50">
-                            <RotateCw size={14} className={isAnimating ? 'animate-spin' : ''} /> Animate
+                </div>
+
+                {/* Matrix breakdown */}
+                <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-xs font-mono space-y-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-400 mb-1 font-sans">Decomposition T = UΛU*</p>
+                    {[['U', fmt(U)], ['Λ', fmt(Λ)], ['T', fmt(T)]].map(([name, m]) => (
+                        <div key={name as string} className="flex items-center gap-2">
+                            <span className="text-indigo-600 font-bold w-4">{name as string}</span>
+                            <span className="text-slate-600">[{(m as string[][])[0].join(', ')}]</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* ── Right: SVG + step controls ── */}
+            <div className="flex-1 flex flex-col gap-4">
+
+                {/* Step pills */}
+                <div className="flex gap-2 flex-wrap">
+                    {STEP_INFO.map((s, i) => (
+                        <button key={i} onClick={() => setStep(i)}
+                            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${step === i
+                                ? 'text-white border-transparent shadow-sm'
+                                : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'}`}
+                            style={step === i ? { background: s.color } : {}}>
+                            {i === 0 ? 'Start' : `Step ${i}`}
                         </button>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <div className="p-6 bg-slate-50 rounded-xl border border-slate-200 shadow-sm">
-            <div className="flex justify-between items-start mb-4">
-                <div>
-                    <h3 className="text-xl font-bold text-slate-800">Spectral Theorem Lab</h3>
-                    <p className="text-sm text-slate-600 mt-1">Visualize T = UΛU* decomposition</p>
-                </div>
-                <button onClick={() => setIsFullscreen(true)} className="p-2 bg-slate-200 hover:bg-slate-300 rounded" title="Fullscreen">
-                    <Maximize2 size={18} />
-                </button>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-                {/* Matrix displays */}
-                <MatrixDisplay matrix={U} label="U (rotation)" highlight="bg-blue-50 border-blue-200" />
-                <MatrixDisplay matrix={Lambda} label="Λ (scaling)" highlight="bg-purple-50 border-purple-200" />
-                <MatrixDisplay matrix={T} label="T = UΛU*" highlight="bg-cyan-50 border-cyan-200" />
-            </div>
-
-            {/* Controls */}
-            <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="p-3 bg-white rounded-lg border border-slate-200">
-                    <h4 className="font-semibold text-slate-700 text-sm mb-2">Eigenvalues</h4>
-                    <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                            <span className="text-blue-600 text-sm w-6">λ₁:</span>
-                            <input type="range" min={-2} max={3} step={0.1} value={eigenvalue1} onChange={e => setEigenvalue1(parseFloat(e.target.value))} className="flex-1" />
-                            <span className="text-sm font-mono w-10">{eigenvalue1.toFixed(1)}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-red-600 text-sm w-6">λ₂:</span>
-                            <input type="range" min={-2} max={3} step={0.1} value={eigenvalue2} onChange={e => setEigenvalue2(parseFloat(e.target.value))} className="flex-1" />
-                            <span className="text-sm font-mono w-10">{eigenvalue2.toFixed(1)}</span>
-                        </div>
-                    </div>
-                </div>
-                <div className="p-3 bg-white rounded-lg border border-slate-200">
-                    <h4 className="font-semibold text-slate-700 text-sm mb-2">Rotation Angle θ</h4>
-                    <div className="flex items-center gap-2">
-                        <input type="range" min={0} max={Math.PI} step={0.05} value={angle} onChange={e => setAngle(parseFloat(e.target.value))} className="flex-1" />
-                        <span className="text-sm font-mono w-12">{(angle * 180 / Math.PI).toFixed(0)}°</span>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-1">Eigenvector orientation</p>
-                </div>
-            </div>
-
-            {/* Presets */}
-            <div className="flex flex-wrap gap-1 mb-4">
-                {presets.map(p => (
-                    <button key={p.name} onClick={() => { setEigenvalue1(p.λ1); setEigenvalue2(p.λ2); setAngle(p.θ); }} className="px-2 py-1 text-xs bg-violet-100 text-violet-700 rounded hover:bg-violet-200">
-                        {p.name}
+                    ))}
+                    <button onClick={animate} disabled={isAnimating}
+                        className="px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-800 text-white hover:bg-slate-700 disabled:opacity-50 transition-colors">
+                        {isAnimating ? 'Playing…' : '▶ Animate'}
                     </button>
-                ))}
-            </div>
-
-            {/* Visualization */}
-            <div className="h-[400px] bg-slate-900 rounded-lg overflow-hidden relative">
-                <Canvas camera={{ position: [0, 0, 6], fov: 50 }}>{vizContent}</Canvas>
-            </div>
-
-            {/* Step controls */}
-            <div className="mt-4 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <label className="flex items-center gap-2 text-sm">
-                        <input type="checkbox" checked={showSteps} onChange={e => setShowSteps(e.target.checked)} />
-                        Show decomposition steps
-                    </label>
-                    {showSteps && (
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm text-slate-600">Step:</span>
-                            <input type="range" min={0} max={3} step={1} value={currentStep} onChange={e => setCurrentStep(parseInt(e.target.value))} className="w-24" />
-                            <span className="text-sm font-mono">{currentStep}/3</span>
-                        </div>
-                    )}
                 </div>
-                <button onClick={animateSteps} disabled={isAnimating} className="px-3 py-1.5 bg-cyan-600 text-white rounded text-sm flex items-center gap-1 hover:bg-cyan-500 disabled:opacity-50">
-                    <RotateCw size={14} className={isAnimating ? 'animate-spin' : ''} /> Animate Steps
-                </button>
-            </div>
 
-            {/* Info panel */}
-            <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-100 text-sm">
-                <h4 className="font-bold text-purple-900 mb-2">Understanding T = UΛU*</h4>
-                <ul className="text-purple-800 space-y-1 text-xs">
-                    <li>• <strong>Step 1 (U*):</strong> Rotate vector into eigenbasis</li>
-                    <li>• <strong>Step 2 (Λ):</strong> Scale along eigenvector directions by λ₁, λ₂</li>
-                    <li>• <strong>Step 3 (U):</strong> Rotate back to standard basis</li>
-                    <li>• The eigenvectors (blue/red lines) are the principal axes of the transformation</li>
-                </ul>
+                {/* Step description */}
+                <div className="rounded-xl border p-4" style={{ borderColor: stepColor + '40', background: stepColor + '08' }}>
+                    <p className="text-sm font-bold mb-0.5" style={{ color: stepColor }}>{STEP_INFO[step].title}</p>
+                    <p className="text-xs text-slate-600">{STEP_INFO[step].desc}</p>
+                </div>
+
+                {/* SVG visualization */}
+                <div className="flex-1 min-h-[420px] bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    <svg width="100%" height="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
+
+                        {/* Ghost grid */}
+                        <Grid matrix={[[1,0],[0,1]]} opacity={0.15} ghost />
+
+                        {/* Current step grid */}
+                        <Grid matrix={gridMatrix} opacity={step === 0 ? 0 : 0.85} />
+
+                        {/* Eigenvector lines (always visible) */}
+                        {(() => {
+                            const [a1,b1]=sv(-ev1[0]*5,-ev1[1]*5), [c1,d1]=sv(ev1[0]*5,ev1[1]*5);
+                            const [a2,b2]=sv(-ev2[0]*5,-ev2[1]*5), [c2,d2]=sv(ev2[0]*5,ev2[1]*5);
+                            return <>
+                                <line x1={a1} y1={b1} x2={c1} y2={d1} stroke="#3b82f6" strokeWidth={1.2} strokeDasharray="7,5" opacity={0.5} />
+                                <line x1={a2} y1={b2} x2={c2} y2={d2} stroke="#ef4444" strokeWidth={1.2} strokeDasharray="7,5" opacity={0.5} />
+                            </>;
+                        })()}
+
+                        {/* Eigenvector arrows */}
+                        <Arrow x1={ox} y1={oy} x2={ev1x} y2={ev1y} color="#3b82f6" label={`v₁(λ=${λ1.toFixed(1)})`} width={2.5} />
+                        <Arrow x1={ox} y1={oy} x2={ev2x} y2={ev2y} color="#ef4444" label={`v₂(λ=${λ2.toFixed(1)})`} width={2.5} />
+
+                        {/* Original v (ghost when moved) */}
+                        {step > 0 && (() => {
+                            const [x1,y1]=sv(v0[0], v0[1]);
+                            return <Arrow x1={ox} y1={oy} x2={x1} y2={y1} color="#6366f1" label="v" width={2} dashed opacity={0.5} />;
+                        })()}
+
+                        {/* Current step vector */}
+                        <Arrow x1={ox} y1={oy} x2={dvx} y2={dvy} color={stepColor} label={['v', 'U*v', 'ΛU*v', 'T(v)'][step]} width={4} />
+
+                        {/* Origin */}
+                        <circle cx={ox} cy={oy} r={4.5} fill="#1e293b" />
+
+                        {/* Step label in canvas */}
+                        <text x={CX} y={18} textAnchor="middle" fill={stepColor} fontSize={12} fontWeight="700">
+                            {['v (input)', 'After U* — rotate into eigenbasis', 'After Λ — scale axes', 'After U — T(v) final result'][step]}
+                        </text>
+
+                        {/* Legend */}
+                        <g transform={`translate(8, ${H-52})`}>
+                            <rect width={270} height={46} rx={6} fill="white" fillOpacity={0.94} stroke="#e2e8f0" />
+                            <line x1={10} y1={14} x2={28} y2={14} stroke="#3b82f6" strokeWidth={2} strokeDasharray="7,4" />
+                            <text x={34} y={18} fill="#3b82f6" fontSize={11} fontWeight="600">v₁ eigendirection (λ₁)</text>
+                            <line x1={10} y1={34} x2={28} y2={34} stroke="#ef4444" strokeWidth={2} strokeDasharray="7,4" />
+                            <text x={34} y={38} fill="#ef4444" fontSize={11} fontWeight="600">v₂ eigendirection (λ₂)</text>
+                            <line x1={148} y1={14} x2={166} y2={14} stroke="#6366f1" strokeWidth={2.5} />
+                            <text x={172} y={18} fill="#6366f1" fontSize={11} fontWeight="600">v input (ghost)</text>
+                            <line x1={148} y1={34} x2={166} y2={34} stroke={stepColor} strokeWidth={3} />
+                            <text x={172} y={38} fontSize={11} fontWeight="600" fill={stepColor}>current step</text>
+                        </g>
+                    </svg>
+                </div>
             </div>
         </div>
     );
