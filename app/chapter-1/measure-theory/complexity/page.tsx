@@ -3,6 +3,9 @@ import { KolmogorovComplexityContent, GeneralizationBoundsContent } from '@/comp
 import KolmogorovComplexityLab from '@/components/math-viz/KolmogorovComplexityLab';
 import GeneralizationBoundsLab from '@/components/math-viz/GeneralizationBoundsLab';
 
+// GitHub Pages serves the app under a sub-path; prefix internal links with it.
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+
 export default function ComplexityGeneralizationPage() {
     return (
         <div className="min-h-screen bg-white">
@@ -24,7 +27,7 @@ export default function ComplexityGeneralizationPage() {
 
                             <div className="pt-12 mb-8 border-t border-slate-200">
                                 <div className="flex items-center justify-between">
-                                    <a href="/chapter-1/measure-theory/mutual-information" className="text-slate-500 hover:text-slate-900 transition-colors flex items-center gap-2">
+                                    <a href={`${basePath}/chapter-1/measure-theory/mutual-information`} className="text-slate-500 hover:text-slate-900 transition-colors flex items-center gap-2">
                                         &larr; Previous
                                     </a>
                                 </div>
