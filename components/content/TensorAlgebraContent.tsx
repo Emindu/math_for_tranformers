@@ -1,507 +1,746 @@
 "use client";
 
 import React from 'react';
-import Latex from 'react-latex-next';
 import 'katex/dist/katex.min.css';
+import Latex from 'react-latex-next';
+import { BookOpen, Shapes, Code2, Dumbbell, ListChecks } from 'lucide-react';
+import Tabs from '@/components/ui/Tabs';
+import ConceptStepper from '@/components/ui/ConceptStepper';
+import Intuition from '@/components/ui/Intuition';
+import CodeBlock from '@/components/ui/CodeBlock';
+import Quiz, { QuizQuestion } from '@/components/ui/Quiz';
+import CodingExercise from '@/components/ui/CodingExercise';
 
-// ── Section 1: Introduction to Tensors ───────────────────────────────────────
-export function IntroductionToTensors() {
+/* ───────────────────────── Icons ───────────────────────── */
+
+const conceptIcon   = <BookOpen   size={15} />;
+const visualizeIcon = <Shapes     size={15} />;
+const codeIcon      = <Code2      size={15} />;
+const exerciseIcon  = <Dumbbell   size={15} />;
+const quizIcon      = <ListChecks size={15} />;
+
+/* ───────────────────────── Layout helpers ───────────────────────── */
+
+function Card({ title, children }: { title: React.ReactNode; children: React.ReactNode }) {
     return (
-        <div className="prose prose-slate max-w-none">
-            <h2 className="text-2xl font-bold text-violet-700 border-b-2 border-violet-200 pb-2 mb-4">
-                Introduction to Tensors
-            </h2>
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
+            <h2 className="mb-4 text-xl font-bold tracking-tight text-[var(--foreground)]">{title}</h2>
+            {children}
+        </section>
+    );
+}
 
-            <p>
-                Tensor algebra is a powerful mathematical framework that extends linear algebra
-                to higher dimensions, enabling the manipulation of multi-dimensional arrays called
-                <strong> tensors</strong>. Tensors generalize vectors and matrices and are central to
-                mathematics, physics, and machine learning. In transformers, tensors represent and
-                process high-dimensional data such as word embeddings and attention scores.
-            </p>
+function Reading({ children }: { children: React.ReactNode }) {
+    return (
+        <article className="prose prose-slate" style={{ maxWidth: 'none' }}>
+            {children}
+        </article>
+    );
+}
 
-            <p>
-                A tensor of order <Latex>{'$k$'}</Latex> (a <Latex>{'$k$'}</Latex>-tensor) over a
-                vector space <Latex>{'$V$'}</Latex> is an element of the tensor product
-                of <Latex>{'$k$'}</Latex> copies of <Latex>{'$V$'}</Latex>. Let <Latex>{'$V$'}</Latex> be
-                a finite-dimensional vector space over a field <Latex>{'$F$'}</Latex> with
-                basis <Latex>{'$\\{e_1, e_2, \\ldots, e_n\\}$'}</Latex>. A tensor of
-                order <Latex>{'$k$'}</Latex> on <Latex>{'$V$'}</Latex> is an element of:
-            </p>
+/* ═══════════════════════════════════════════════════════════════════════════
+   1.5.1 — Introduction to Tensors — Quiz & Exercise data
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-            <div className="bg-violet-50 p-4 rounded-lg my-4 border border-violet-200 text-center">
-                <Latex>{'$V^{\\otimes k} = \\underbrace{V \\otimes V \\otimes \\cdots \\otimes V}_{k \\text{ factors}}$'}</Latex>
-            </div>
+const TENSORS_QUIZ: QuizQuestion[] = [
+    {
+        question: "A 3rd-order tensor with shape (4, 5, 6) has how many components?",
+        options: ["15", "120", "60", "24"],
+        answer: 1,
+        explanation: "The number of components is the product of the dimensions: 4 × 5 × 6 = 120.",
+    },
+    {
+        question: "Which operation reduces a tensor's order by summing over index pairs?",
+        options: ["Tensor product", "Contraction", "Outer product", "Reshape"],
+        answer: 1,
+        explanation: "Tensor contraction reduces a tensor's order by summing over paired indices, generalising matrix multiplication and trace.",
+    },
+];
 
-            <p>
-                If <Latex>{'$T$'}</Latex> is a tensor of order <Latex>{'$k$'}</Latex>, it can be expressed as:
-            </p>
+const TENSORS_EXERCISE = {
+    starter: `import numpy as np
 
-            <div className="bg-slate-50 p-4 rounded-lg my-4 border border-slate-200 text-center">
-                <Latex>{'$T = \\sum_{i_1, i_2, \\ldots, i_k} T_{i_1 i_2 \\cdots i_k}\\, e_{i_1} \\otimes e_{i_2} \\otimes \\cdots \\otimes e_{i_k}$'}</Latex>
-            </div>
+def batched_attention_scores(Q, K):
+    """
+    Compute scaled attention scores using np.einsum.
+    Q: (batch, n, dk) — query tensor
+    K: (batch, n, dk) — key tensor
+    Returns scores of shape (batch, n, n)
+    Hint: use np.einsum with 'bik,bjk->bij' and scale by sqrt(dk)
+    """
+    # TODO: implement using np.einsum
+    pass
+`,
+    checks: `import numpy as np
+np.random.seed(42)
+Q = np.random.randn(2, 4, 8)
+K = np.random.randn(2, 4, 8)
+result = batched_attention_scores(Q, K)
+_check("returns correct shape", lambda: result is not None and result.shape == (2, 4, 4))
+_check("matches einsum", lambda: np.allclose(result, np.einsum('bik,bjk->bij', Q, K) / np.sqrt(8), atol=1e-6))
+`,
+    solution: `import numpy as np
 
-            <p>
-                where <Latex>{'$T_{i_1 i_2 \\cdots i_k}$'}</Latex> are the <strong>components</strong> of the
-                tensor with respect to the chosen basis, and <Latex>{'$\\otimes$'}</Latex> denotes the
-                tensor product. The components form a <Latex>{'$k$'}</Latex>-dimensional array (hypermatrix),
-                where each index <Latex>{'$i_j$'}</Latex> ranges from 1 to <Latex>{'$n$'}</Latex>.
-            </p>
+def batched_attention_scores(Q, K):
+    dk = Q.shape[-1]
+    return np.einsum('bik,bjk->bij', Q, K) / np.sqrt(dk)
 
-            {/* Tensor Orders */}
-            <h3 className="text-xl font-bold text-violet-700 border-b border-violet-200 pb-1 mt-8 mb-4">
-                Tensor Orders
-            </h3>
+np.random.seed(42)
+Q = np.random.randn(2, 4, 8)
+K = np.random.randn(2, 4, 8)
+scores = batched_attention_scores(Q, K)
+print(f"Scores shape: {scores.shape}")
+print(f"Sample scores (batch 0):\\n{np.round(scores[0], 3)}")
+`,
+};
 
-            <div className="bg-slate-50 p-5 rounded-lg my-6 border border-slate-200">
-                <div className="flex items-start gap-3 mb-3">
-                    <span className="bg-violet-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">0</span>
-                    <h4 className="font-bold text-slate-800 m-0">Scalars (Order 0)</h4>
-                </div>
-                <p className="text-sm text-slate-700">
-                    A scalar is a single numerical value — a tensor with no indices.
-                </p>
-            </div>
+/* ═══════════════════════════════════════════════════════════════════════════
+   1.5.2 — Algebraic Structures — Quiz & Exercise data
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-            <div className="bg-slate-50 p-5 rounded-lg my-6 border border-slate-200">
-                <div className="flex items-start gap-3 mb-3">
-                    <span className="bg-violet-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
-                    <h4 className="font-bold text-slate-800 m-0">Vectors (Order 1)</h4>
-                </div>
-                <p className="text-sm text-slate-700 mb-2">
-                    A one-dimensional array of numbers:
-                </p>
-                <div className="text-center bg-white p-3 rounded border border-slate-100">
-                    <Latex>{'$v = \\sum_i v_i\\, e_i$'}</Latex>
-                </div>
-            </div>
+const ALGEBRAIC_QUIZ: QuizQuestion[] = [
+    {
+        question: "Given $A\\in\\mathbb{R}^{2\\times3}$ and $B\\in\\mathbb{R}^{4\\times5}$, what is the shape of $A\\otimes B$?",
+        options: ["(6,15)", "(8,15)", "(6,8)", "(8,15)"],
+        answer: 1,
+        explanation: "The Kronecker product A⊗B has shape (mp × nq) = (2·4 × 3·5) = (8 × 15).",
+    },
+    {
+        question: "Why does matrix multiplication in attention use a scaling factor $1/\\sqrt{d_k}$?",
+        options: [
+            "For numerical stability in high dimensions",
+            "To make weights sum to 1",
+            "To reduce compute cost",
+            "For positional encoding",
+        ],
+        answer: 0,
+        explanation: "Without scaling, dot products in high dimensions have std ≈ √d_k, pushing softmax into saturation where gradients vanish. Dividing by √d_k keeps std ≈ 1.",
+    },
+];
 
-            <div className="bg-slate-50 p-5 rounded-lg my-6 border border-slate-200">
-                <div className="flex items-start gap-3 mb-3">
-                    <span className="bg-violet-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
-                    <h4 className="font-bold text-slate-800 m-0">Matrices (Order 2)</h4>
-                </div>
-                <p className="text-sm text-slate-700 mb-2">
-                    A two-dimensional array of numbers:
-                </p>
-                <div className="text-center bg-white p-3 rounded border border-slate-100">
-                    <Latex>{'$M = \\sum_{i,j} M_{ij}\\, e_i \\otimes e_j$'}</Latex>
-                </div>
-            </div>
+const ALGEBRAIC_EXERCISE = {
+    starter: `import numpy as np
 
-            <p>
-                Higher-order tensors can be visualized as multi-dimensional arrays, but
-                their manipulation requires careful attention to the indices and the rules
-                of tensor algebra.
-            </p>
+def multi_head_attention_einsum(X, h=4, seed=0):
+    """
+    Implement multi-head attention using np.einsum.
+    X: (n, d) input matrix
+    h: number of attention heads
+    Returns output of shape (n, d)
+    """
+    # TODO: implement multi-head attention using einsum
+    pass
+`,
+    checks: `import numpy as np
+np.random.seed(42)
+X = np.random.randn(6, 16)
+result = multi_head_attention_einsum(X, h=4, seed=0)
+_check("returns correct shape", lambda: result is not None and result.shape == (6, 16))
+_check("output is finite", lambda: result is not None and np.all(np.isfinite(result)))
+`,
+    solution: `import numpy as np
+
+def softmax(x, axis=-1):
+    e = np.exp(x - x.max(axis=axis, keepdims=True))
+    return e / e.sum(axis=axis, keepdims=True)
+
+def multi_head_attention_einsum(X, h=4, seed=0):
+    n, d = X.shape
+    dk = d // h
+    np.random.seed(seed)
+    outputs = []
+    for _ in range(h):
+        WQ = np.random.randn(d, dk) * 0.1
+        WK = np.random.randn(d, dk) * 0.1
+        WV = np.random.randn(d, dk) * 0.1
+        Q = np.einsum('nd,dk->nk', X, WQ)
+        K = np.einsum('nd,dk->nk', X, WK)
+        V = np.einsum('nd,dk->nk', X, WV)
+        scores = np.einsum('ik,jk->ij', Q, K) / np.sqrt(dk)
+        weights = softmax(scores)
+        Z_h = np.einsum('ij,jk->ik', weights, V)
+        outputs.append(Z_h)
+    concat = np.concatenate(outputs, axis=-1)
+    WO = np.random.randn(h * dk, d) * 0.1
+    return np.einsum('nd,do->no', concat, WO)
+
+np.random.seed(42)
+X = np.random.randn(6, 16)
+Z = multi_head_attention_einsum(X, h=4)
+print(f"Input shape:  {X.shape}")
+print(f"Output shape: {Z.shape}")
+`,
+};
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   1.5.3 — Self-Attention — Quiz & Exercise data
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const SELFATTN_QUIZ: QuizQuestion[] = [
+    {
+        question: "What does the softmax in self-attention ensure?",
+        options: [
+            "Attention weights are non-negative and sum to 1",
+            "Output values are bounded between 0 and 1",
+            "Keys and queries have equal magnitude",
+            "Gradients don't vanish",
+        ],
+        answer: 0,
+        explanation: "Softmax maps the raw dot-product scores to a valid probability distribution: each weight is non-negative and all weights for a given query sum to 1.",
+    },
+    {
+        question: "In multi-head attention with $h$ heads and $d_k$-dimensional heads, what is the shape of the concatenated output before the final projection?",
+        options: ["$(n, h\\times d_k)$", "$(n, d_k)$", "$(h, n, d_k)$", "$(n, d)$"],
+        answer: 0,
+        explanation: "Each of the h heads produces an (n, dk) output. Concatenating along the last axis gives (n, h×dk), which is then projected back to (n, d) by W^O.",
+    },
+];
+
+const SELFATTN_EXERCISE = {
+    starter: `import numpy as np
+
+def causal_self_attention(X, WQ, WK, WV):
+    """
+    Implement causal (masked) self-attention.
+    Each token can only attend to itself and previous tokens (no future look-ahead).
+    X:  (n, d)
+    WQ, WK, WV: (d, dk)
+    Returns output of shape (n, dk)
+    Hint: create a boolean upper-triangular mask and set those positions to -inf before softmax
+    """
+    # TODO: implement causal attention
+    pass
+`,
+    checks: `import numpy as np
+np.random.seed(42)
+n, d, dk = 5, 8, 4
+X = np.random.randn(n, d)
+WQ = np.random.randn(d, dk) * 0.1
+WK = np.random.randn(d, dk) * 0.1
+WV = np.random.randn(d, dk) * 0.1
+result = causal_self_attention(X, WQ, WK, WV)
+_check("returns correct shape", lambda: result is not None and result.shape == (n, dk))
+_check("output is finite", lambda: result is not None and np.all(np.isfinite(result)))
+X2 = X.copy(); X2[3:] = np.random.randn(2, d)
+result2 = causal_self_attention(X2, WQ, WK, WV)
+_check("causal: early tokens unaffected by future changes", lambda: np.allclose(result[:3], result2[:3], atol=1e-6))
+`,
+    solution: `import numpy as np
+
+def softmax(x, axis=-1):
+    x = x - x.max(axis=axis, keepdims=True)
+    e = np.exp(x)
+    return e / e.sum(axis=axis, keepdims=True)
+
+def causal_self_attention(X, WQ, WK, WV):
+    Q = X @ WQ
+    K = X @ WK
+    V = X @ WV
+    n, dk = Q.shape
+    scores = Q @ K.T / np.sqrt(dk)           # (n, n)
+    mask = np.triu(np.ones((n, n), dtype=bool), k=1)
+    scores[mask] = -np.inf                    # mask future positions
+    weights = softmax(scores)                 # (n, n)
+    return weights @ V                        # (n, dk)
+
+np.random.seed(42)
+n, d, dk = 6, 8, 4
+X  = np.random.randn(n, d)
+WQ = np.random.randn(d, dk) * 0.1
+WK = np.random.randn(d, dk) * 0.1
+WV = np.random.randn(d, dk) * 0.1
+Z  = causal_self_attention(X, WQ, WK, WV)
+print(f"Output shape: {Z.shape}")
+
+# Verify causality
+def get_weights(X, WQ, WK):
+    Q = X @ WQ; K = X @ WK; n, dk = Q.shape
+    scores = Q @ K.T / np.sqrt(dk)
+    mask = np.triu(np.ones((n, n), dtype=bool), k=1)
+    scores[mask] = -np.inf
+    e = np.exp(scores - scores.max(axis=-1, keepdims=True)); return e / e.sum(axis=-1, keepdims=True)
+
+W = get_weights(X, WQ, WK)
+print(f"Attention weights (lower triangular):\\n{np.round(W, 3)}")
+`,
+};
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   1.5.1 — Introduction to Tensors
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+export function IntroToTensorsContent({ tensorLab }: { tensorLab?: React.ReactNode }) {
+    return (
+        <div className="space-y-10">
+            <Card title="1.5.1 · Introduction to Tensors">
+                <Tabs tabs={[
+                    {
+                        id: 'concept', label: 'Concept', icon: conceptIcon,
+                        content: (
+                            <ConceptStepper steps={[
+                                {
+                                    label: 'What is a Tensor?',
+                                    content: (
+                                        <div>
+                                            <Intuition>
+                                                A scalar is a 0-tensor (one number). A vector is a 1-tensor (a list). A matrix is a 2-tensor (a grid). A 3-tensor is a cube of numbers. Each step up multiplies the indices needed to locate one component.
+                                            </Intuition>
+                                            <Reading>
+                                                <p>
+                                                    An order-<Latex>{'$k$'}</Latex> tensor over a vector space <Latex>{'$V$'}</Latex> is an element of the tensor product <Latex>{'$V^{\\otimes k}$'}</Latex>:
+                                                </p>
+                                                <div className="bg-[var(--surface-2)] p-4 rounded-lg my-3 text-center border border-[var(--border)]">
+                                                    <Latex>{'$$T = \\sum_{i_1,\\ldots,i_k} T_{i_1 \\cdots i_k}\\, e_{i_1} \\otimes \\cdots \\otimes e_{i_k}$$'}</Latex>
+                                                </div>
+                                                <p>
+                                                    The components <Latex>{'$T_{i_1 \\cdots i_k}$'}</Latex> form a <Latex>{'$k$'}</Latex>-dimensional hypermatrix — each index <Latex>{'$i_j$'}</Latex> ranges from 1 to <Latex>{'$n = \\dim V$'}</Latex>.
+                                                    A scalar is a 0-tensor, a vector is a 1-tensor, and a matrix is a 2-tensor.
+                                                    In transformers, word embeddings are 1-tensors and weight matrices are 2-tensors; batched activations are 3-tensors (batch × sequence × dimension).
+                                                </p>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    label: 'Tensor Products',
+                                    content: (
+                                        <div>
+                                            <Intuition>
+                                                The tensor product builds bigger tensors from smaller ones. If <Latex>{'$A$'}</Latex> has order <Latex>{'$k$'}</Latex> and <Latex>{'$B$'}</Latex> has order <Latex>{'$l$'}</Latex>, their product <Latex>{'$A \\otimes B$'}</Latex> has order <Latex>{'$k+l$'}</Latex> with components that are products of individual components.
+                                            </Intuition>
+                                            <Reading>
+                                                <p>
+                                                    Given <Latex>{'$A \\in V^{\\otimes k}$'}</Latex> and <Latex>{'$B \\in W^{\\otimes l}$'}</Latex>, the tensor product <Latex>{'$A \\otimes B$'}</Latex> is an order-<Latex>{'$(k+l)$'}</Latex> tensor with components:
+                                                </p>
+                                                <div className="bg-[var(--surface-2)] p-4 rounded-lg my-3 text-center border border-[var(--border)]">
+                                                    <Latex>{'$$(A \\otimes B)_{i_1 \\cdots i_k j_1 \\cdots j_l} = A_{i_1 \\cdots i_k}\\, B_{j_1 \\cdots j_l}$$'}</Latex>
+                                                </div>
+                                                <p>
+                                                    The tensor product is <strong>bilinear</strong>: <Latex>{'$(A+B) \\otimes C = A \\otimes C + B \\otimes C$'}</Latex>.
+                                                    This distributivity is used in transformer embedding layers to compose token and position representations.
+                                                </p>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    label: 'Tensor Contraction',
+                                    content: (
+                                        <div>
+                                            <Intuition>
+                                                Contraction is the inverse of the tensor product — it reduces order by summing over index pairs. Matrix multiplication is contraction. The trace is the simplest contraction (order 2 → scalar).
+                                            </Intuition>
+                                            <Reading>
+                                                <p>
+                                                    Contracting two tensors over a shared index reduces order by 2. For matrices this is exactly matrix multiplication:
+                                                </p>
+                                                <div className="bg-[var(--surface-2)] p-4 rounded-lg my-3 text-center border border-[var(--border)]">
+                                                    <Latex>{'$$C_{iu} = \\sum_j A_{ij}\\, B_{ju}$$'}</Latex>
+                                                </div>
+                                                <p>
+                                                    The trace is the simplest contraction — an order-2 tensor reduced to a scalar by setting <Latex>{'$i = j$'}</Latex> and summing.
+                                                    In self-attention, <Latex>{'$QK^\\top$'}</Latex> is a contraction over the <Latex>{'$d_k$'}</Latex> index, producing an <Latex>{'$n \\times n$'}</Latex> similarity matrix.
+                                                    <code>np.einsum</code> expresses arbitrary contractions in a single line.
+                                                </p>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                            ]} />
+                        ),
+                    },
+                    {
+                        id: 'visualize', label: 'Visualize', icon: visualizeIcon,
+                        content: tensorLab,
+                    },
+                    {
+                        id: 'code', label: 'Code', icon: codeIcon,
+                        content: (
+                            <CodeBlock
+                                title="tensors.py"
+                                runnable
+                                language="python"
+                                code={`import numpy as np
+
+# Order-0: scalar
+s = 5.0
+print(f"Scalar (order 0): {s}")
+
+# Order-1: vector
+v = np.array([1.0, 2.0, 3.0])
+print(f"Vector (order 1): {v}")
+
+# Order-2: matrix
+M = np.array([[1, 2], [3, 4]])
+print(f"Matrix (order 2):\\n{M}")
+
+# Order-3 tensor
+T = np.random.randn(3, 4, 5)
+print(f"Tensor (order 3) shape: {T.shape}")
+
+# Tensor product (outer product)
+a = np.array([1.0, 2.0, 3.0])
+b = np.array([4.0, 5.0])
+outer = np.outer(a, b)
+print(f"Outer product shape: {outer.shape}")  # (3, 2)
+
+# Tensor contraction (matrix multiplication)
+A = np.random.randn(4, 3)
+B = np.random.randn(3, 5)
+C = np.einsum('ij,jk->ik', A, B)  # contraction over j
+print(f"Contraction result shape: {C.shape}")  # (4, 5)
+
+# Trace (simplest contraction)
+square = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+trace = np.einsum('ii->', square)
+print(f"Trace: {trace}")  # 15
+`}
+                            />
+                        ),
+                    },
+                    {
+                        id: 'exercise', label: 'Exercise', icon: exerciseIcon,
+                        content: (
+                            <CodingExercise
+                                bare
+                                title="Batched Attention Scores with einsum"
+                                prompt={<>Use <Latex>{'$\\texttt{np.einsum}$'}</Latex> to compute batched scaled attention scores <Latex>{'$QK^\\top / \\sqrt{d_k}$'}</Latex> for input tensors of shape <Latex>{'$(\\text{batch}, n, d_k)$'}</Latex>.</>}
+                                starterCode={TENSORS_EXERCISE.starter}
+                                checks={TENSORS_EXERCISE.checks}
+                                solution={TENSORS_EXERCISE.solution}
+                            />
+                        ),
+                    },
+                    {
+                        id: 'quiz', label: 'Quiz', icon: quizIcon,
+                        content: <Quiz bare questions={TENSORS_QUIZ} title="Check: Introduction to Tensors" />,
+                    },
+                ]} />
+            </Card>
         </div>
     );
 }
 
-// ── Section 2: Tensor Products and Contractions ──────────────────────────────
-export function TensorProductsAndContractions() {
+/* ═══════════════════════════════════════════════════════════════════════════
+   1.5.2 — Algebraic Structures in Transformers
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+export function AlgebraicStructuresContent({ kroneckerLab }: { kroneckerLab?: React.ReactNode }) {
     return (
-        <div className="prose prose-slate max-w-none">
-            <h2 className="text-2xl font-bold text-violet-700 border-b-2 border-violet-200 pb-2 mb-4">
-                Tensor Products and Contractions
-            </h2>
+        <div className="space-y-10">
+            <Card title="1.5.2 · Algebraic Structures in Transformers">
+                <Tabs tabs={[
+                    {
+                        id: 'concept', label: 'Concept', icon: conceptIcon,
+                        content: (
+                            <ConceptStepper steps={[
+                                {
+                                    label: 'Matrix Multiplication as Linear Map',
+                                    content: (
+                                        <div>
+                                            <Intuition>
+                                                Every row of <Latex>{'$X$'}</Latex> is an input token. Multiplying by <Latex>{'$W$'}</Latex> projects all tokens in parallel into a new space — the same transformation for each. In attention, <Latex>{'$QK^\\top$'}</Latex> then computes all pairwise similarities at once.
+                                            </Intuition>
+                                            <Reading>
+                                                <p>
+                                                    The operation <Latex>{'$Y = XW$'}</Latex> transforms each row of <Latex>{'$X \\in \\mathbb{R}^{n \\times d}$'}</Latex> by the same linear map <Latex>{'$W \\in \\mathbb{R}^{d \\times d_k}$'}</Latex>.
+                                                    In attention, <Latex>{'$QK^\\top$'}</Latex> produces an <Latex>{'$n \\times n$'}</Latex> similarity matrix — each entry is the dot product between a query vector and a key vector:
+                                                </p>
+                                                <div className="bg-[var(--surface-2)] p-4 rounded-lg my-3 text-center border border-[var(--border)]">
+                                                    <Latex>{'$$S_{ij} = q_i \\cdot k_j = (XW^Q)_i \\cdot (XW^K)_j$$'}</Latex>
+                                                </div>
+                                                <p>
+                                                    The entire similarity matrix is computed in one batched matrix multiplication — efficient on modern hardware.
+                                                </p>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    label: 'Kronecker Products',
+                                    content: (
+                                        <div>
+                                            <Intuition>
+                                                The Kronecker product <Latex>{'$A \\otimes B$'}</Latex> replaces each entry <Latex>{'$a_{ij}$'}</Latex> with a scaled copy of <Latex>{'$B$'}</Latex>. The result encodes all pairwise interactions between rows/columns of <Latex>{'$A$'}</Latex> and <Latex>{'$B$'}</Latex> without enumerating them explicitly.
+                                            </Intuition>
+                                            <Reading>
+                                                <p>
+                                                    For <Latex>{'$A \\in \\mathbb{R}^{m \\times n}$'}</Latex> and <Latex>{'$B \\in \\mathbb{R}^{p \\times q}$'}</Latex>, the Kronecker product <Latex>{'$A \\otimes B$'}</Latex> is a block matrix of size <Latex>{'$mp \\times nq$'}</Latex>:
+                                                </p>
+                                                <div className="bg-[var(--surface-2)] p-4 rounded-lg my-3 text-center border border-[var(--border)]">
+                                                    <Latex>{'$$(A \\otimes B)_{ij} = a_{\\lceil i/p \\rceil,\\, \\lceil j/q \\rceil} \\cdot B_{(i-1\\!\\mod p)+1,\\,(j-1\\!\\mod q)+1}$$'}</Latex>
+                                                </div>
+                                                <p>
+                                                    This models interactions between two feature sets without explicitly constructing a large interaction matrix. It appears in structured weight parameterisations for transformer layers.
+                                                </p>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    label: 'Kronecker Factorization',
+                                    content: (
+                                        <div>
+                                            <Intuition>
+                                                Instead of storing a huge weight matrix <Latex>{'$M$'}</Latex>, approximate it as <Latex>{'$A \\otimes B$'}</Latex> with two small matrices. Parameters collapse from <Latex>{'$mn$'}</Latex> to <Latex>{'$m_1 n_1 + m_2 n_2$'}</Latex> — dramatic compression at modest accuracy loss.
+                                            </Intuition>
+                                            <Reading>
+                                                <p>
+                                                    Kronecker factorization decomposes a large matrix <Latex>{'$M \\approx A \\otimes B$'}</Latex> into two smaller matrices, reducing parameter count:
+                                                </p>
+                                                <div className="bg-[var(--surface-2)] p-4 rounded-lg my-3 text-center border border-[var(--border)]">
+                                                    <Latex>{'$$M \\in \\mathbb{R}^{mp \\times nq} \\approx A \\otimes B, \\quad A \\in \\mathbb{R}^{m \\times n}, B \\in \\mathbb{R}^{p \\times q}$$'}</Latex>
+                                                </div>
+                                                <p>
+                                                    Multi-head attention heads can share factored weights, reducing parameters while preserving expressivity.
+                                                    This technique is crucial for scaling transformers to long sequences, as it reduces both memory footprint and compute cost.
+                                                </p>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                            ]} />
+                        ),
+                    },
+                    {
+                        id: 'visualize', label: 'Visualize', icon: visualizeIcon,
+                        content: kroneckerLab,
+                    },
+                    {
+                        id: 'code', label: 'Code', icon: codeIcon,
+                        content: (
+                            <CodeBlock
+                                title="kronecker.py"
+                                runnable
+                                language="python"
+                                code={`import numpy as np
 
-            <h3 className="text-xl font-bold text-violet-700 border-b border-violet-200 pb-1 mt-4 mb-4">
-                Tensor Products
-            </h3>
+# Matrix multiplication in attention
+n, d, dk = 4, 8, 4
+X = np.random.randn(n, d)
+WQ = np.random.randn(d, dk)
+WK = np.random.randn(d, dk)
+WV = np.random.randn(d, dk)
 
-            <p>
-                The tensor product constructs higher-order tensors from lower-order ones.
-                Given <Latex>{'$A \\in V^{\\otimes k}$'}</Latex> and <Latex>{'$B \\in W^{\\otimes l}$'}</Latex>,
-                their tensor product <Latex>{'$A \\otimes B$'}</Latex> is a tensor of
-                order <Latex>{'$k + l$'}</Latex> with components:
-            </p>
+Q = X @ WQ  # (n, dk)
+K = X @ WK  # (n, dk)
+V = X @ WV  # (n, dk)
 
-            <div className="bg-violet-50 p-4 rounded-lg my-4 border border-violet-200 text-center">
-                <Latex>{'$(A \\otimes B)_{i_1 i_2 \\cdots i_k j_1 j_2 \\cdots j_l} = A_{i_1 i_2 \\cdots i_k}\\, B_{j_1 j_2 \\cdots j_l}$'}</Latex>
-            </div>
+scores = Q @ K.T / np.sqrt(dk)  # (n, n) — attention scores
+print(f"Attention scores shape: {scores.shape}")
 
-            <p>
-                The tensor product is <strong>bilinear</strong>:
-            </p>
+# Kronecker product
+A = np.array([[1, 2], [3, 4]])
+B = np.array([[0, 5], [6, 7]])
+kron = np.kron(A, B)
+print(f"Kronecker product:\\n{kron}")
+print(f"Shape: {kron.shape}")  # (4, 4)
 
-            <div className="bg-slate-50 p-5 rounded-lg my-6 border border-slate-200">
-                <div className="space-y-2 text-center">
-                    <div><Latex>{'$(A + B) \\otimes C = A \\otimes C + B \\otimes C$'}</Latex></div>
-                    <div><Latex>{'$A \\otimes (B + C) = A \\otimes B + A \\otimes C$'}</Latex></div>
-                    <div><Latex>{'$\\alpha(A \\otimes B) = (\\alpha A) \\otimes B = A \\otimes (\\alpha B)$'}</Latex></div>
-                </div>
-                <p className="text-xs text-slate-500 mt-3 text-center">
-                    for any scalar <Latex>{'$\\alpha \\in F$'}</Latex>
-                </p>
-            </div>
-
-            <h3 className="text-xl font-bold text-violet-700 border-b border-violet-200 pb-1 mt-8 mb-4">
-                Tensor Contraction
-            </h3>
-
-            <p>
-                Contraction reduces the order of a tensor by summing over one or more pairs
-                of indices — analogous to matrix multiplication. Given a
-                tensor <Latex>{'$T \\in V^{\\otimes k}$'}</Latex>, contraction over
-                indices <Latex>{'$i_j$'}</Latex> and <Latex>{'$i_l$'}</Latex> yields a tensor
-                of order <Latex>{'$k - 2$'}</Latex>:
-            </p>
-
-            <div className="bg-violet-50 p-4 rounded-lg my-4 border border-violet-200 text-center">
-                <Latex>{'$S_{i_1 \\cdots \\hat{i}_j \\cdots \\hat{i}_l \\cdots i_k} = \\sum_{i_j} T_{i_1 i_2 \\cdots i_j \\cdots i_l \\cdots i_k}$'}</Latex>
-            </div>
-
-            <p>
-                For two tensors <Latex>{'$A \\in V \\otimes W$'}</Latex> and <Latex>{'$B \\in W^* \\otimes U$'}</Latex>,
-                the contraction over the common index space <Latex>{'$W$'}</Latex> gives <Latex>{'$C \\in V \\otimes U$'}</Latex>:
-            </p>
-
-            <div className="bg-amber-50 border-l-4 border-amber-400 p-5 my-6">
-                <p className="font-semibold text-amber-800 mb-2">Contraction as Matrix Multiplication</p>
-                <div className="text-center">
-                    <Latex>{'$C_{iu} = \\sum_j A_{ij}\\, B_{ju}$'}</Latex>
-                </div>
-                <p className="text-xs text-amber-800 mt-3">
-                    This operation is exactly matrix multiplication — the product of matrices corresponds
-                    to the contraction of their associated tensors.
-                </p>
-            </div>
-
-            <div className="bg-violet-50 border-l-4 border-violet-400 p-5 my-6">
-                <p className="font-semibold text-violet-800 mb-2">Relevance to Transformers</p>
-                <p className="text-sm text-violet-800">
-                    In self-attention mechanisms, tensor products and contractions compute the attention
-                    scores, where the query, key, and value tensors interact through tensor operations.
-                    These operations allow the model to dynamically adjust focus on different parts of
-                    the input sequence, capturing complex dependencies and patterns.
-                </p>
-            </div>
+# Kronecker factorization approximation
+# A large matrix approx as Kronecker product of two smaller ones
+M = np.random.randn(4, 4)
+# Factorize: find A (2x2) and B (2x2) such that A⊗B ≈ M
+# Simple demo: reconstruct from known factors
+A_true = np.array([[1.0, 2.0], [3.0, 4.0]])
+B_true = np.array([[0.1, 0.2], [0.3, 0.4]])
+M_approx = np.kron(A_true, B_true)
+print(f"Factored approximation shape: {M_approx.shape}")
+print(f"Parameters: {A_true.size + B_true.size} vs full: {M_approx.size}")
+`}
+                            />
+                        ),
+                    },
+                    {
+                        id: 'exercise', label: 'Exercise', icon: exerciseIcon,
+                        content: (
+                            <CodingExercise
+                                bare
+                                title="Multi-Head Attention with einsum"
+                                prompt={<>Implement multi-head attention using <Latex>{'$\\texttt{np.einsum}$'}</Latex> for each matrix multiplication. Verify the output shape matches the input shape <Latex>{'$(n, d)$'}</Latex>.</>}
+                                starterCode={ALGEBRAIC_EXERCISE.starter}
+                                checks={ALGEBRAIC_EXERCISE.checks}
+                                solution={ALGEBRAIC_EXERCISE.solution}
+                            />
+                        ),
+                    },
+                    {
+                        id: 'quiz', label: 'Quiz', icon: quizIcon,
+                        content: <Quiz bare questions={ALGEBRAIC_QUIZ} title="Check: Algebraic Structures" />,
+                    },
+                ]} />
+            </Card>
         </div>
     );
 }
 
-// ── Section 3: Role of Matrix Multiplication ─────────────────────────────────
-export function RoleOfMatrixMultiplication() {
+/* ═══════════════════════════════════════════════════════════════════════════
+   1.5.3 — Self-Attention Mechanisms
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+export function SelfAttentionTensorContent({ selfAttentionLab }: { selfAttentionLab?: React.ReactNode }) {
     return (
-        <div className="prose prose-slate max-w-none">
-            <h2 className="text-2xl font-bold text-cyan-700 border-b-2 border-cyan-200 pb-2 mb-4">
-                Algebraic Structures in Transformers
-            </h2>
+        <div className="space-y-10">
+            <Card title="1.5.3 · Self-Attention Mechanisms">
+                <Tabs tabs={[
+                    {
+                        id: 'concept', label: 'Concept', icon: conceptIcon,
+                        content: (
+                            <ConceptStepper steps={[
+                                {
+                                    label: 'The QKV Formulation',
+                                    content: (
+                                        <div>
+                                            <Intuition>
+                                                Queries ask "what am I looking for?", keys say "what do I contain?", and values carry "what information do I have?". The learned projections <Latex>{'$W^Q, W^K, W^V$'}</Latex> allow each role to specialise independently.
+                                            </Intuition>
+                                            <Reading>
+                                                <p>
+                                                    From an input sequence <Latex>{'$X \\in \\mathbb{R}^{n \\times d}$'}</Latex>, three matrices are computed via learned weight matrices:
+                                                </p>
+                                                <div className="bg-[var(--surface-2)] p-4 rounded-lg my-3 text-center border border-[var(--border)]">
+                                                    <Latex>{'$$Q = XW^Q, \\quad K = XW^K, \\quad V = XW^V$$'}</Latex>
+                                                </div>
+                                                <p>
+                                                    where <Latex>{'$W^Q, W^K, W^V \\in \\mathbb{R}^{d \\times d_k}$'}</Latex> are learned projections.
+                                                    Each projection allows the model to transform the same input into a role-specific representation,
+                                                    enabling the model to specialise queries for search and keys for indexing independently.
+                                                </p>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    label: 'Attention Weight Computation',
+                                    content: (
+                                        <div>
+                                            <Intuition>
+                                                The attention weights <Latex>{'$\\alpha_{ij}$'}</Latex> form a probability distribution for each query — non-negative and summing to 1. Token <Latex>{'$i$'}</Latex> attends to token <Latex>{'$j$'}</Latex> in proportion to how well their query and key align.
+                                            </Intuition>
+                                            <Reading>
+                                                <p>
+                                                    Scaled dot-product attention computes similarity scores <Latex>{'$S_{ij} = \\langle q_i, k_j \\rangle / \\sqrt{d_k}$'}</Latex>, then normalises:
+                                                </p>
+                                                <div className="bg-[var(--surface-2)] p-4 rounded-lg my-3 text-center border border-[var(--border)]">
+                                                    <Latex>{'$$\\alpha_{ij} = \\text{softmax}(S_{ij}), \\qquad z_i = \\sum_j \\alpha_{ij} v_j$$'}</Latex>
+                                                </div>
+                                                <p>
+                                                    In compact matrix form: <Latex>{'$Z = \\text{softmax}(QK^\\top / \\sqrt{d_k})\\, V$'}</Latex>.
+                                                    The weights <Latex>{'$\\alpha_{ij} \\geq 0$'}</Latex> and <Latex>{'$\\sum_j \\alpha_{ij} = 1$'}</Latex> — they form a probability distribution over the sequence for every query.
+                                                </p>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    label: 'Multi-Head Attention',
+                                    content: (
+                                        <div>
+                                            <Intuition>
+                                                Multiple heads are multiple lenses on the same data. Some heads attend locally (syntax), others globally (semantics). Concatenating all views gives a richer representation than any single head could provide.
+                                            </Intuition>
+                                            <Reading>
+                                                <p>
+                                                    With <Latex>{'$h$'}</Latex> heads, each head <Latex>{'$i$'}</Latex> has its own projections <Latex>{'$W_i^Q, W_i^K, W_i^V$'}</Latex> and produces an independent output <Latex>{'$Z_i$'}</Latex>. The outputs are concatenated and projected:
+                                                </p>
+                                                <div className="bg-[var(--surface-2)] p-4 rounded-lg my-3 text-center border border-[var(--border)]">
+                                                    <Latex>{'$$Z = \\text{Concat}(Z_1, \\ldots, Z_h)\\, W^O, \\quad W^O \\in \\mathbb{R}^{h d_k \\times d}$$'}</Latex>
+                                                </div>
+                                                <p>
+                                                    Each head specialises: some capture local syntactic patterns, others capture long-range semantic dependencies.
+                                                    The final projection <Latex>{'$W^O$'}</Latex> learns how to best combine these diverse perspectives into a unified representation.
+                                                </p>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                            ]} />
+                        ),
+                    },
+                    {
+                        id: 'visualize', label: 'Visualize', icon: visualizeIcon,
+                        content: selfAttentionLab,
+                    },
+                    {
+                        id: 'code', label: 'Code', icon: codeIcon,
+                        content: (
+                            <CodeBlock
+                                title="self_attention.py"
+                                runnable
+                                language="python"
+                                code={`import numpy as np
 
-            <p>
-                The algebraic structures underlying transformers are crucial for understanding how
-                these models manipulate data. Among these structures, <strong>matrix multiplication</strong>,
-                <strong> Kronecker products</strong>, and <strong>tensor factorization</strong> play key roles,
-                particularly in attention scores and efficient representation of high-dimensional data.
-            </p>
+def softmax(x, axis=-1):
+    x = x - x.max(axis=axis, keepdims=True)
+    e = np.exp(x)
+    return e / e.sum(axis=axis, keepdims=True)
 
-            <h3 className="text-xl font-bold text-cyan-700 border-b border-cyan-200 pb-1 mt-8 mb-4">
-                The Role of Matrix Multiplication
-            </h3>
+def self_attention(X, WQ, WK, WV):
+    """Single-head self-attention."""
+    Q = X @ WQ
+    K = X @ WK
+    V = X @ WV
+    dk = Q.shape[-1]
+    scores = Q @ K.T / np.sqrt(dk)
+    weights = softmax(scores)  # (n, n)
+    return weights @ V, weights
 
-            <p>
-                Consider the basic operation in a transformer layer where an input
-                matrix <Latex>{'$X \\in \\mathbb{R}^{n \\times d}$'}</Latex>, representing a sequence
-                of <Latex>{'$n$'}</Latex> input vectors of dimension <Latex>{'$d$'}</Latex>, is transformed by
-                a weight matrix <Latex>{'$W \\in \\mathbb{R}^{d \\times d}$'}</Latex>:
-            </p>
+def multi_head_attention(X, heads=4, dk=None):
+    """Multi-head attention."""
+    n, d = X.shape
+    dk = dk or d // heads
+    outputs = []
+    for _ in range(heads):
+        WQ = np.random.randn(d, dk) * 0.1
+        WK = np.random.randn(d, dk) * 0.1
+        WV = np.random.randn(d, dk) * 0.1
+        Z_h, _ = self_attention(X, WQ, WK, WV)
+        outputs.append(Z_h)
+    concat = np.concatenate(outputs, axis=-1)  # (n, h*dk)
+    WO = np.random.randn(heads * dk, d) * 0.1
+    return concat @ WO  # (n, d)
 
-            <div className="bg-cyan-50 p-4 rounded-lg my-4 border border-cyan-200 text-center">
-                <Latex>{'$Y = XW$'}</Latex>
-            </div>
-
-            <p>
-                Here, <Latex>{'$Y$'}</Latex> applies the linear transformation defined
-                by <Latex>{'$W$'}</Latex> to each vector in the sequence, projecting input vectors into
-                different spaces where specific patterns may be more easily captured.
-            </p>
-
-            <div className="bg-slate-50 p-5 rounded-lg my-6 border border-slate-200">
-                <div className="flex items-start gap-3 mb-3">
-                    <span className="bg-cyan-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">●</span>
-                    <h4 className="font-bold text-slate-800 m-0">Attention Score Computation</h4>
-                </div>
-                <p className="text-sm text-slate-700 mb-3">
-                    In self-attention, matrix multiplication computes the dot-product attention scores:
-                </p>
-                <div className="text-center bg-white p-3 rounded border border-slate-100">
-                    <Latex>{'$\\text{Attention}(Q, K, V) = \\text{Softmax}\\!\\left(\\frac{QK^\\top}{\\sqrt{d_k}}\\right)V$'}</Latex>
-                </div>
-                <p className="text-xs text-slate-500 mt-2">
-                    <Latex>{'$QK^\\top$'}</Latex> produces an <Latex>{'$n \\times n$'}</Latex> matrix where each entry
-                    is the similarity between a query and a key vector.
-                </p>
-            </div>
-
-            <div className="bg-slate-50 p-5 rounded-lg my-6 border border-slate-200">
-                <div className="flex items-start gap-3 mb-3">
-                    <span className="bg-cyan-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">●</span>
-                    <h4 className="font-bold text-slate-800 m-0">Information Blending</h4>
-                </div>
-                <p className="text-sm text-slate-700">
-                    Matrix multiplication facilitates the blending of information across the input sequence.
-                    By multiplying matrices, the model combines contributions from various elements,
-                    effectively <em>attending</em> to multiple parts simultaneously — essential for
-                    understanding long-range dependencies in translation and summarization tasks.
-                </p>
-            </div>
-
-            <div className="bg-cyan-50 border-l-4 border-cyan-400 p-5 my-6">
-                <p className="font-semibold text-cyan-800 mb-2">Key Insight</p>
-                <p className="text-sm text-cyan-800">
-                    Matrix multiplication in transformers is often combined with bias addition and
-                    non-linear activation functions (ReLU, GELU) to create more complex and
-                    expressive transformations — key to the model&apos;s capacity to learn intricate patterns.
-                </p>
-            </div>
+# Demo
+n, d = 6, 16
+X = np.random.randn(n, d)
+Z = multi_head_attention(X, heads=4)
+print(f"Input shape:  {X.shape}")
+print(f"Output shape: {Z.shape}")  # same as input
+`}
+                            />
+                        ),
+                    },
+                    {
+                        id: 'exercise', label: 'Exercise', icon: exerciseIcon,
+                        content: (
+                            <CodingExercise
+                                bare
+                                title="Causal (Masked) Self-Attention"
+                                prompt={<>Implement causal self-attention where each token can only attend to itself and <em>previous</em> tokens. Apply an upper-triangular mask of <Latex>{'$-\\infty$'}</Latex> before softmax to prevent future look-ahead.</>}
+                                starterCode={SELFATTN_EXERCISE.starter}
+                                checks={SELFATTN_EXERCISE.checks}
+                                solution={SELFATTN_EXERCISE.solution}
+                            />
+                        ),
+                    },
+                    {
+                        id: 'quiz', label: 'Quiz', icon: quizIcon,
+                        content: <Quiz bare questions={SELFATTN_QUIZ} title="Check: Self-Attention Mechanisms" />,
+                    },
+                ]} />
+            </Card>
         </div>
     );
 }
 
-// ── Section 4: Kronecker Products and Factorization ──────────────────────────
-export function KroneckerProductsAndFactorization() {
-    return (
-        <div className="prose prose-slate max-w-none">
-            <h2 className="text-2xl font-bold text-cyan-700 border-b-2 border-cyan-200 pb-2 mb-4">
-                Kronecker Products and Factorization
-            </h2>
+/* ═══════════════════════════════════════════════════════════════════════════
+   Backward-compatibility stubs (keep existing export names)
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-            <p>
-                The Kronecker product extends matrix multiplication to higher-dimensional
-                structures. Given <Latex>{'$A \\in \\mathbb{R}^{m \\times n}$'}</Latex> and <Latex>{'$B \\in \\mathbb{R}^{p \\times q}$'}</Latex>,
-                their Kronecker product <Latex>{'$A \\otimes B$'}</Latex> is a block matrix
-                of dimensions <Latex>{'$mp \\times nq$'}</Latex>:
-            </p>
+export function IntroductionToTensors() { return null; }
+export function TensorProductsAndContractions() { return null; }
+export function RoleOfMatrixMultiplication() { return null; }
+export function KroneckerProductsAndFactorization() { return null; }
+export function SelfAttentionMechanism() { return null; }
+export function MultiHeadSelfAttention() { return null; }
 
-            <div className="bg-cyan-50 p-4 rounded-lg my-4 border border-cyan-200 text-center">
-                <Latex>{'$A \\otimes B = \\begin{pmatrix} a_{11}B & a_{12}B & \\cdots & a_{1n}B \\\\ a_{21}B & a_{22}B & \\cdots & a_{2n}B \\\\ \\vdots & \\vdots & \\ddots & \\vdots \\\\ a_{m1}B & a_{m2}B & \\cdots & a_{mn}B \\end{pmatrix}$'}</Latex>
-            </div>
-
-            <p>
-                Each block is a scaled version of <Latex>{'$B$'}</Latex> by the corresponding entry
-                in <Latex>{'$A$'}</Latex>. The Kronecker product inherits distributivity over addition and
-                associativity, but also introduces the ability to model interactions between different
-                dimensions.
-            </p>
-
-            <div className="bg-slate-50 p-5 rounded-lg my-6 border border-slate-200">
-                <div className="flex items-start gap-3 mb-3">
-                    <span className="bg-cyan-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
-                    <h4 className="font-bold text-slate-800 m-0">Efficient Interaction Encoding</h4>
-                </div>
-                <p className="text-sm text-slate-700">
-                    Instead of explicitly constructing a large matrix to capture all pairwise interactions
-                    between two feature sets <Latex>{'$A$'}</Latex> and <Latex>{'$B$'}</Latex>,
-                    the Kronecker product <Latex>{'$A \\otimes B$'}</Latex> provides a compact and structured encoding.
-                </p>
-            </div>
-
-            <h3 className="text-xl font-bold text-cyan-700 border-b border-cyan-200 pb-1 mt-8 mb-4">
-                Kronecker Factorization
-            </h3>
-
-            <p>
-                Factorization techniques decompose a large matrix <Latex>{'$M$'}</Latex> into
-                smaller matrices, reducing parameters and computational cost:
-            </p>
-
-            <div className="bg-amber-50 border-l-4 border-amber-400 p-5 my-6">
-                <p className="font-semibold text-amber-800 mb-2">Kronecker Decomposition</p>
-                <div className="text-center">
-                    <Latex>{'$M \\approx A \\otimes B$'}</Latex>
-                </div>
-                <p className="text-xs text-amber-800 mt-3">
-                    This allows the model to approximate large matrix operations using smaller, more
-                    efficient operations — applicable to weight matrices, attention scores, and other components.
-                </p>
-            </div>
-
-            <div className="bg-slate-50 p-5 rounded-lg my-6 border border-slate-200">
-                <div className="flex items-start gap-3 mb-3">
-                    <span className="bg-cyan-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
-                    <h4 className="font-bold text-slate-800 m-0">Multi-Head Attention Factorization</h4>
-                </div>
-                <p className="text-sm text-slate-700">
-                    Attention weights across heads can be factorized to share information while
-                    allowing individual specialization. This leads to a more efficient parameter
-                    representation and can help prevent overfitting by reducing model capacity
-                    without sacrificing expressivity.
-                </p>
-            </div>
-
-            <div className="bg-cyan-50 border-l-4 border-cyan-400 p-5 my-6">
-                <p className="font-semibold text-cyan-800 mb-2">Scalability</p>
-                <p className="text-sm text-cyan-800">
-                    Kronecker product-based factorization enables transformers to scale to larger models
-                    and longer sequences by reducing the memory footprint and computational cost
-                    of key matrix operations while preserving the model&apos;s ability to capture
-                    complex dependencies.
-                </p>
-            </div>
-        </div>
-    );
-}
-
-// ── Section 5: Self-Attention Mechanism ──────────────────────────────────────
-export function SelfAttentionMechanism() {
-    return (
-        <div className="prose prose-slate max-w-none">
-            <h2 className="text-2xl font-bold text-amber-700 border-b-2 border-amber-200 pb-2 mb-4">
-                Self-Attention Mechanisms
-            </h2>
-
-            <p>
-                The central theme is computing a <strong>weighted combination</strong> of input features,
-                where the weights reflect the relevance of each feature to the others.
-                Let <Latex>{'$X = \\{x_1, x_2, \\ldots, x_n\\}$'}</Latex> be a sequence of input vectors,
-                where each <Latex>{'$x_i \\in \\mathbb{R}^d$'}</Latex>. The self-attention mechanism
-                transforms this into output <Latex>{'$Z = \\{z_1, z_2, \\ldots, z_n\\}$'}</Latex>.
-            </p>
-
-            <h3 className="text-xl font-bold text-amber-700 border-b border-amber-200 pb-1 mt-8 mb-4">
-                Query, Key, and Value Matrices
-            </h3>
-
-            <p>
-                Three matrices are derived from the input <Latex>{'$X$'}</Latex> using learned weight matrices:
-            </p>
-
-            <div className="bg-amber-50 p-4 rounded-lg my-4 border border-amber-200 text-center">
-                <Latex>{'$Q = XW^Q, \\quad K = XW^K, \\quad V = XW^V$'}</Latex>
-            </div>
-
-            <p>
-                where <Latex>{'$W^Q, W^K, W^V \\in \\mathbb{R}^{d \\times d_k}$'}</Latex> are learned
-                weight matrices and <Latex>{'$d_k$'}</Latex> is the dimensionality of the key vectors.
-            </p>
-
-            <h3 className="text-xl font-bold text-amber-700 border-b border-amber-200 pb-1 mt-8 mb-4">
-                Attention Weights
-            </h3>
-
-            <p>
-                Each output vector <Latex>{'$z_i$'}</Latex> is a weighted sum of value vectors:
-            </p>
-
-            <div className="bg-slate-50 p-4 rounded-lg my-4 border border-slate-200 text-center">
-                <Latex>{'$z_i = \\sum_{j=1}^{n} \\alpha_{ij}\\, v_j$'}</Latex>
-            </div>
-
-            <p>
-                where the attention weights <Latex>{'$\\alpha_{ij}$'}</Latex> are defined by the softmax of similarity scores:
-            </p>
-
-            <div className="bg-amber-50 p-5 rounded-lg my-6 border border-amber-200">
-                <div className="space-y-3 text-center">
-                    <div><Latex>{'$\\alpha_{ij} = \\frac{\\exp(S_{ij})}{\\sum_{k=1}^{n} \\exp(S_{ik})}$'}</Latex></div>
-                    <div><Latex>{'$S_{ij} = \\frac{\\langle q_i, k_j \\rangle}{\\sqrt{d_k}}$'}</Latex></div>
-                </div>
-                <p className="text-xs text-amber-700 mt-3 text-center">
-                    The scaling factor <Latex>{'$\\frac{1}{\\sqrt{d_k}}$'}</Latex> mitigates the effect of
-                    large dot products in high-dimensional spaces.
-                </p>
-            </div>
-
-            <div className="bg-slate-50 p-5 rounded-lg my-6 border border-slate-200">
-                <div className="flex items-start gap-3 mb-3">
-                    <span className="bg-amber-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">●</span>
-                    <h4 className="font-bold text-slate-800 m-0">Compact Matrix Form</h4>
-                </div>
-                <div className="text-center bg-white p-3 rounded border border-slate-100">
-                    <Latex>{'$Z = \\text{Softmax}\\!\\left(\\frac{QK^\\top}{\\sqrt{d_k}}\\right)V$'}</Latex>
-                </div>
-                <p className="text-xs text-slate-500 mt-2">
-                    This formulation highlights three core operations: pairwise similarities (dot products),
-                    normalization (softmax), and weighted aggregation of values.
-                </p>
-            </div>
-        </div>
-    );
-}
-
-// ── Section 6: Multi-Head Self-Attention ─────────────────────────────────────
-export function MultiHeadSelfAttention() {
-    return (
-        <div className="prose prose-slate max-w-none">
-            <h2 className="text-2xl font-bold text-amber-700 border-b-2 border-amber-200 pb-2 mb-4">
-                Multi-Head Self-Attention
-            </h2>
-
-            <p>
-                Multi-head self-attention extends the basic mechanism by allowing the model
-                to focus on <strong>different aspects</strong> of the input simultaneously.
-                With <Latex>{'$h$'}</Latex> attention heads operating in parallel, each with its own
-                learned weights, the model captures various types of dependencies.
-            </p>
-
-            <h3 className="text-xl font-bold text-amber-700 border-b border-amber-200 pb-1 mt-8 mb-4">
-                Per-Head Computation
-            </h3>
-
-            <p>
-                For each head <Latex>{'$i$'}</Latex>:
-            </p>
-
-            <div className="bg-amber-50 p-4 rounded-lg my-4 border border-amber-200 text-center">
-                <Latex>{'$Q_i = XW_i^Q, \\quad K_i = XW_i^K, \\quad V_i = XW_i^V$'}</Latex>
-            </div>
-
-            <p>
-                where <Latex>{'$W_i^Q, W_i^K, W_i^V \\in \\mathbb{R}^{d \\times d_k}$'}</Latex> are
-                per-head weight matrices. Each head computes:
-            </p>
-
-            <div className="bg-slate-50 p-4 rounded-lg my-4 border border-slate-200 text-center">
-                <Latex>{'$Z_i = \\text{Softmax}\\!\\left(\\frac{Q_i K_i^\\top}{\\sqrt{d_k}}\\right)V_i$'}</Latex>
-            </div>
-
-            <h3 className="text-xl font-bold text-amber-700 border-b border-amber-200 pb-1 mt-8 mb-4">
-                Concatenation and Projection
-            </h3>
-
-            <p>
-                The outputs are concatenated and projected back to dimension <Latex>{'$d$'}</Latex>:
-            </p>
-
-            <div className="bg-amber-50 p-4 rounded-lg my-4 border border-amber-200 text-center">
-                <Latex>{'$Z = \\text{Concat}(Z_1, Z_2, \\ldots, Z_h)\\, W^O$'}</Latex>
-            </div>
-
-            <p>
-                where <Latex>{'$W^O \\in \\mathbb{R}^{hd_k \\times d}$'}</Latex> projects the concatenated
-                output back to the original dimensionality.
-            </p>
-
-            <div className="bg-slate-50 p-5 rounded-lg my-6 border border-slate-200">
-                <div className="flex items-start gap-3 mb-3">
-                    <span className="bg-amber-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
-                    <h4 className="font-bold text-slate-800 m-0">Short-Range Dependencies</h4>
-                </div>
-                <p className="text-sm text-slate-700">
-                    Some heads specialize in attending to adjacent tokens, capturing local syntactic patterns.
-                </p>
-            </div>
-
-            <div className="bg-slate-50 p-5 rounded-lg my-6 border border-slate-200">
-                <div className="flex items-start gap-3 mb-3">
-                    <span className="bg-amber-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
-                    <h4 className="font-bold text-slate-800 m-0">Long-Range Dependencies</h4>
-                </div>
-                <p className="text-sm text-slate-700">
-                    Other heads attend to distant tokens, capturing semantic relationships and co-reference across the sequence.
-                </p>
-            </div>
-
-            <div className="bg-amber-50 border-l-4 border-amber-400 p-5 my-6">
-                <p className="font-semibold text-amber-800 mb-2">Expressivity</p>
-                <p className="text-sm text-amber-800">
-                    The parallel processing of multiple attention heads enhances the model&apos;s
-                    expressivity and allows it to capture the full complexity of input data —
-                    each head acts as an independent feature detector operating over the
-                    entire sequence simultaneously.
-                </p>
-            </div>
-        </div>
-    );
-}
+export default function TensorAlgebraContent() { return null; }
