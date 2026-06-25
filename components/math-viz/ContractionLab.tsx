@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion } from 'framer-motion';
 
 // ── SVG constants ───────────────────────────────────────────────────────────
 const W = 420;
@@ -196,16 +195,13 @@ export default function ContractionLab() {
 
                     {/* Cobweb lines */}
                     {cobwebLines.map((line, i) => (
-                        <motion.line
+                        <line
                             key={i}
                             x1={cbXScale(line.x1)} y1={cbScale(line.y1)}
                             x2={cbXScale(line.x2)} y2={cbScale(line.y2)}
                             stroke="#f59e0b"
                             strokeWidth={1.5}
                             opacity={0.7}
-                            initial={{ pathLength: 0 }}
-                            animate={{ pathLength: 1 }}
-                            transition={{ delay: animating ? i * 0.15 : 0, duration: 0.2 }}
                         />
                     ))}
 

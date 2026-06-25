@@ -1,625 +1,890 @@
 "use client";
 
 import React from 'react';
-import Latex from 'react-latex-next';
 import 'katex/dist/katex.min.css';
+import Latex from 'react-latex-next';
+import { BookOpen, Shapes, Code2, Dumbbell, ListChecks } from 'lucide-react';
+import Tabs from '@/components/ui/Tabs';
+import ConceptStepper from '@/components/ui/ConceptStepper';
+import Intuition from '@/components/ui/Intuition';
+import CodeBlock from '@/components/ui/CodeBlock';
+import Quiz, { QuizQuestion } from '@/components/ui/Quiz';
+import CodingExercise from '@/components/ui/CodingExercise';
 
-// ── Section 1: Definition of Metric Spaces ──────────────────────────────────
-export function MetricSpaceDefinition() {
+/* ─── Layout helpers ─────────────────────────────────────────────────────── */
+
+function Card({ title, children }: { title: React.ReactNode; children: React.ReactNode }) {
     return (
-        <div className="prose prose-slate max-w-none">
-            <h2 className="text-2xl font-bold text-indigo-700 border-b-2 border-indigo-200 pb-2 mb-4">
-                Definition of Metric Spaces
-            </h2>
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
+            <h2 className="mb-4 text-xl font-bold tracking-tight text-[var(--foreground)]">{title}</h2>
+            {children}
+        </section>
+    );
+}
 
-            <p>
-                A <strong>metric space</strong> is a set equipped with a function that defines a
-                notion of distance between any two elements. Formally, a metric space is a
-                pair <Latex>{'$(X, d)$'}</Latex>, where <Latex>{'$X$'}</Latex> is a set
-                and <Latex>{'$d : X \\times X \\to \\mathbb{R}$'}</Latex> is a function (called
-                a <strong>metric</strong> or <strong>distance function</strong>) satisfying the following
-                properties for all <Latex>{'$x, y, z \\in X$'}</Latex>:
-            </p>
+function Reading({ children }: { children: React.ReactNode }) {
+    return (
+        <article className="prose prose-slate" style={{ maxWidth: 'none' }}>
+            {children}
+        </article>
+    );
+}
 
-            <div className="bg-slate-50 p-5 rounded-lg my-6 border border-slate-200 space-y-3">
-                <div className="flex items-start gap-3">
-                    <span className="bg-indigo-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
-                    <div>
-                        <strong>Non-negativity:</strong>{' '}
-                        <Latex>{'$d(x, y) \\geq 0$'}</Latex> — the distance between any two points is non-negative.
-                    </div>
-                </div>
-                <div className="flex items-start gap-3">
-                    <span className="bg-indigo-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
-                    <div>
-                        <strong>Identity of indiscernibles:</strong>{' '}
-                        <Latex>{'$d(x, y) = 0$'}</Latex> if and only if <Latex>{'$x = y$'}</Latex> — the distance between two distinct points is positive.
-                    </div>
-                </div>
-                <div className="flex items-start gap-3">
-                    <span className="bg-indigo-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
-                    <div>
-                        <strong>Symmetry:</strong>{' '}
-                        <Latex>{'$d(x, y) = d(y, x)$'}</Latex> — distance is symmetric with respect to its arguments.
-                    </div>
-                </div>
-                <div className="flex items-start gap-3">
-                    <span className="bg-indigo-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">4</span>
-                    <div>
-                        <strong>Triangle inequality:</strong>{' '}
-                        <Latex>{'$d(x, z) \\leq d(x, y) + d(y, z)$'}</Latex> — the direct distance is always less than or equal to the sum through a third point.
-                    </div>
-                </div>
-            </div>
+/* ─── Tab icons ──────────────────────────────────────────────────────────── */
 
-            <p>
-                These axioms encapsulate the essential properties of distance in a geometric space
-                and provide the foundation for many topological concepts. The metric <Latex>{'$d$'}</Latex> induces
-                a topology on <Latex>{'$X$'}</Latex>, which allows us to define concepts such as continuity,
-                convergence, and compactness.
-            </p>
+const conceptIcon  = <BookOpen   size={14} />;
+const vizIcon      = <Shapes     size={14} />;
+const codeIcon     = <Code2      size={14} />;
+const exerciseIcon = <Dumbbell   size={14} />;
+const quizIcon     = <ListChecks size={14} />;
 
-            <div className="bg-indigo-50 border-l-4 border-indigo-400 p-4 my-6">
-                <p className="font-semibold text-indigo-800 mb-2">Metric Spaces in Transformers</p>
-                <p className="text-sm text-indigo-900">
-                    The importance of metric spaces in the study of attention mechanisms lies in the
-                    ability to measure distances between representations (such as word embeddings or
-                    image features) and to understand how these distances influence the behavior of
-                    the model. In a language model, the distance between two word embeddings might
-                    reflect the semantic similarity between the corresponding words, influencing the
-                    attention mechanism&apos;s ability to focus on relevant parts of the input sequence.
-                </p>
-            </div>
+/* ─── Quiz data ──────────────────────────────────────────────────────────── */
+
+const DEF_QUIZ: QuizQuestion[] = [
+    {
+        question: "Which property distinguishes a closed ball from an open ball?",
+        options: [
+            "Closed has a larger radius",
+            "Closed includes the boundary",
+            "Closed has more interior points",
+            "Closed is always bounded",
+        ],
+        answer: 1,
+        explanation:
+            "A closed ball B̄(x,r) includes all points at distance ≤ r, including the boundary sphere. An open ball B(x,r) only includes points at distance strictly < r.",
+    },
+    {
+        question: "A sequence xₙ = 1/n in ℝ. For ε = 0.01, what is the smallest N such that all xₙ with n > N satisfy |xₙ - 0| < ε?",
+        options: ["N = 10", "N = 50", "N = 100", "N = 1000"],
+        answer: 2,
+        explanation:
+            "We need 1/n < 0.01, so n > 100. The smallest such N is 100 (since x₁₀₁ = 1/101 < 0.01).",
+    },
+];
+
+const TOPO_QUIZ: QuizQuestion[] = [
+    {
+        question: "Which correctly describes an open set U in a metric space?",
+        options: [
+            "Contains the boundary of every ball",
+            "Every point has a neighborhood entirely inside U",
+            "Is always bounded",
+            "Contains all its limit points",
+        ],
+        answer: 1,
+        explanation:
+            "A set U is open if every point x ∈ U has some ε > 0 such that the entire ball B(x,ε) ⊆ U — every interior point has breathing room.",
+    },
+    {
+        question: "According to Heine-Borel, which subset of ℝ² is compact?",
+        options: [
+            "{(x,y): x²+y² < 1}",
+            "{(x,y): x²+y² ≤ 1}",
+            "All of ℝ²",
+            "{(x,y): x > 0}",
+        ],
+        answer: 1,
+        explanation:
+            "By Heine-Borel, a subset of ℝⁿ is compact iff it is closed AND bounded. The closed unit disk {x²+y²≤1} is both; the open disk excludes its boundary so is not closed.",
+    },
+];
+
+const MAP_QUIZ: QuizQuestion[] = [
+    {
+        question: "A function f(x) = 0.7x + 2 is iterated from x₀ = 0. Where does the sequence converge?",
+        options: ["x* = 2", "x* = 20/3 ≈ 6.667", "Diverges", "x* = 0.7"],
+        answer: 1,
+        explanation:
+            "Fixed point: x* = 0.7x* + 2 → 0.3x* = 2 → x* = 20/3 ≈ 6.667. Since c = 0.7 < 1 it's a contraction, so Banach guarantees convergence.",
+    },
+    {
+        question: "What conditions does the Banach Fixed-Point Theorem require?",
+        options: [
+            "f must be differentiable",
+            "The space must be complete and f must be a contraction",
+            "The fixed point must be known in advance",
+            "f must be linear",
+        ],
+        answer: 1,
+        explanation:
+            "Banach's theorem needs: (1) a complete metric space — every Cauchy sequence converges; and (2) f is a contraction — d(f(x),f(y)) ≤ c·d(x,y) for some c < 1.",
+    },
+];
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   1. DefinitionContent
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+export function DefinitionContent({
+    metricLab,
+    convergenceLab,
+}: {
+    metricLab: React.ReactNode;
+    convergenceLab: React.ReactNode;
+}) {
+    return (
+        <div className="space-y-10">
+            <Card title="1.3.1 · Metric Space Definition">
+                <Tabs
+                    tabs={[
+                        {
+                            id: 'concept',
+                            label: 'Concept',
+                            icon: conceptIcon,
+                            content: (
+                                <ConceptStepper
+                                    steps={[
+                                        {
+                                            label: 'What is a Metric?',
+                                            content: (
+                                                <div>
+                                                    <Intuition>
+                                                        A metric formalizes distance. Once you have d(x,y), you automatically get
+                                                        convergence, continuity, and all of analysis — for free.
+                                                    </Intuition>
+                                                    <Reading>
+                                                        <p>
+                                                            A <strong>metric space</strong> is a pair{' '}
+                                                            <Latex>{'$(X, d)$'}</Latex> where{' '}
+                                                            <Latex>{'$X$'}</Latex> is a set and{' '}
+                                                            <Latex>{'$d : X \\times X \\to \\mathbb{R}_{\\geq 0}$'}</Latex>{' '}
+                                                            satisfies four axioms for all{' '}
+                                                            <Latex>{'$x, y, z \\in X$'}</Latex>:
+                                                        </p>
+                                                        <ol>
+                                                            <li>
+                                                                <strong>Non-negativity:</strong>{' '}
+                                                                <Latex>{'$d(x,y) \\geq 0$'}</Latex>
+                                                            </li>
+                                                            <li>
+                                                                <strong>Identity:</strong>{' '}
+                                                                <Latex>{'$d(x,y) = 0 \\iff x = y$'}</Latex>
+                                                            </li>
+                                                            <li>
+                                                                <strong>Symmetry:</strong>{' '}
+                                                                <Latex>{'$d(x,y) = d(y,x)$'}</Latex>
+                                                            </li>
+                                                            <li>
+                                                                <strong>Triangle inequality:</strong>{' '}
+                                                                <Latex>{'$d(x,z) \\leq d(x,y) + d(y,z)$'}</Latex>
+                                                            </li>
+                                                        </ol>
+                                                    </Reading>
+                                                </div>
+                                            ),
+                                        },
+                                        {
+                                            label: 'Common Metrics',
+                                            content: (
+                                                <div>
+                                                    <Intuition>
+                                                        Different metrics see the world differently — Manhattan counts city blocks,
+                                                        cosine ignores length and only cares about angle.
+                                                    </Intuition>
+                                                    <Reading>
+                                                        <p>
+                                                            For vectors{' '}
+                                                            <Latex>{'$x, y \\in \\mathbb{R}^n$'}</Latex>:
+                                                        </p>
+                                                        <ul>
+                                                            <li>
+                                                                <strong>Euclidean (L²):</strong>{' '}
+                                                                <Latex>{'$d(x,y) = \\sqrt{\\sum_i (x_i - y_i)^2}$'}</Latex>{' '}
+                                                                — unit ball is a circle/sphere
+                                                            </li>
+                                                            <li>
+                                                                <strong>Manhattan (L¹):</strong>{' '}
+                                                                <Latex>{'$d(x,y) = \\sum_i |x_i - y_i|$'}</Latex>{' '}
+                                                                — unit ball is a diamond
+                                                            </li>
+                                                            <li>
+                                                                <strong>Chebyshev (L∞):</strong>{' '}
+                                                                <Latex>{'$d(x,y) = \\max_i |x_i - y_i|$'}</Latex>{' '}
+                                                                — unit ball is a square
+                                                            </li>
+                                                            <li>
+                                                                <strong>Cosine:</strong>{' '}
+                                                                <Latex>{'$d(x,y) = 1 - \\frac{x \\cdot y}{\\|x\\|\\|y\\|}$'}</Latex>{' '}
+                                                                — measures angular separation
+                                                            </li>
+                                                        </ul>
+                                                        <p>
+                                                            In NLP, cosine distance is preferred because word embeddings&apos;{' '}
+                                                            <em>direction</em> encodes meaning, not magnitude.
+                                                        </p>
+                                                    </Reading>
+                                                </div>
+                                            ),
+                                        },
+                                        {
+                                            label: 'Convergence & Completeness',
+                                            content: (
+                                                <div>
+                                                    <Intuition>
+                                                        Completeness is a guarantee: if a sequence&apos;s terms get arbitrarily close
+                                                        to each other, there must be a limit point <em>inside</em> the space.
+                                                        The rationals ℚ fail this — sequences there can converge &quot;toward&quot; √2,
+                                                        which isn&apos;t rational.
+                                                    </Intuition>
+                                                    <Reading>
+                                                        <p>
+                                                            A sequence <Latex>{'$(x_n)$'}</Latex> <strong>converges</strong> to{' '}
+                                                            <Latex>{'$L$'}</Latex> if{' '}
+                                                            <Latex>{'$\\forall \\varepsilon > 0\\; \\exists N: n > N \\Rightarrow d(x_n, L) < \\varepsilon$'}</Latex>.
+                                                        </p>
+                                                        <p>
+                                                            A <strong>Cauchy sequence</strong> has{' '}
+                                                            <Latex>{'$d(x_m, x_n) \\to 0$'}</Latex> as{' '}
+                                                            <Latex>{'$m, n \\to \\infty$'}</Latex>.
+                                                        </p>
+                                                        <p>
+                                                            A metric space is <strong>complete</strong> if every Cauchy sequence converges
+                                                            to a point in <Latex>{'$X$'}</Latex>. <Latex>{'$\\mathbb{R}$'}</Latex> is
+                                                            complete; <Latex>{'$\\mathbb{Q}$'}</Latex> is not.
+                                                        </p>
+                                                    </Reading>
+                                                </div>
+                                            ),
+                                        },
+                                    ]}
+                                />
+                            ),
+                        },
+                        {
+                            id: 'visualize',
+                            label: 'Visualize',
+                            icon: vizIcon,
+                            content: (
+                                <div className="flex flex-col gap-6">
+                                    {metricLab}
+                                    {convergenceLab}
+                                </div>
+                            ),
+                        },
+                        {
+                            id: 'code',
+                            label: 'Code',
+                            icon: codeIcon,
+                            content: (
+                                <CodeBlock
+                                    title="metrics.py"
+                                    runnable
+                                    language="python"
+                                    code={`import numpy as np
+
+def euclidean(x, y): return np.sqrt(np.sum((x - y)**2))
+def manhattan(x, y): return np.sum(np.abs(x - y))
+def chebyshev(x, y): return np.max(np.abs(x - y))
+def cosine_dist(x, y):
+    return 1 - np.dot(x, y) / (np.linalg.norm(x) * np.linalg.norm(y))
+
+a = np.array([3.0, 4.0])
+b = np.array([0.0, 0.0])
+
+for name, fn in [("Euclidean", euclidean), ("Manhattan", manhattan),
+                 ("Chebyshev", chebyshev), ("Cosine", cosine_dist)]:
+    print(f"{name:12}: {fn(a, b):.4f}")
+
+# Verify triangle inequality for random points
+np.random.seed(42)
+x, y, z = np.random.randn(3, 5)
+dxy, dyz, dxz = euclidean(x, y), euclidean(y, z), euclidean(x, z)
+print(f"\\nd(x,z) = {dxz:.4f} <= d(x,y) + d(y,z) = {dxy+dyz:.4f}: {dxz <= dxy + dyz + 1e-9}")`}
+                                />
+                            ),
+                        },
+                        {
+                            id: 'exercise',
+                            label: 'Exercise',
+                            icon: exerciseIcon,
+                            content: (
+                                <CodingExercise
+                                    bare
+                                    title="Verify Metric Axioms"
+                                    prompt={
+                                        <>
+                                            Implement all 4 metric axioms as checks and verify them for the Euclidean
+                                            metric on 3 random points in ℝ⁴.
+                                        </>
+                                    }
+                                    starterCode={`import numpy as np
+
+def euclidean(x, y):
+    return np.sqrt(np.sum((x - y)**2))
+
+def verify_metric_axioms(d, points):
+    """
+    Verify the 4 metric axioms for function d on a list of points.
+    Returns a dict of {axiom: True/False}.
+    """
+    x, y, z = points
+    results = {}
+    # TODO: check non-negativity d(x,y) >= 0
+    # TODO: check identity d(x,y)==0 iff x==y
+    # TODO: check symmetry d(x,y)==d(y,x)
+    # TODO: check triangle inequality d(x,z) <= d(x,y) + d(y,z)
+    return results
+
+np.random.seed(0)
+pts = [np.random.randn(4) for _ in range(3)]
+results = verify_metric_axioms(euclidean, pts)
+for axiom, ok in results.items():
+    print(f"{axiom}: {'OK' if ok else 'FAIL'}")`}
+                                    checks={`_check("returns a dict", lambda: isinstance(verify_metric_axioms(euclidean, pts), dict))
+r = verify_metric_axioms(euclidean, pts)
+_check("non-negativity check present", lambda: "Non-negativity" in r)
+_check("non-negativity is True", lambda: r.get("Non-negativity") == True)
+_check("symmetry is True", lambda: r.get("Symmetry") == True)
+_check("triangle inequality is True", lambda: r.get("Triangle inequality") == True)`}
+                                    solution={`import numpy as np
+
+def euclidean(x, y):
+    return np.sqrt(np.sum((x - y)**2))
+
+def verify_metric_axioms(d, points):
+    x, y, z = points
+    results = {}
+    dxy = d(x, y); dyx = d(y, x); dxz = d(x, z); dyz = d(y, z)
+    dxx = d(x, x)
+    results["Non-negativity"] = dxy >= 0 and dxz >= 0 and dyz >= 0
+    results["Identity"] = dxx < 1e-10 and dxy > 1e-10
+    results["Symmetry"] = abs(dxy - dyx) < 1e-10
+    results["Triangle inequality"] = dxz <= dxy + dyz + 1e-9
+    return results
+
+np.random.seed(0)
+pts = [np.random.randn(4) for _ in range(3)]
+results = verify_metric_axioms(euclidean, pts)
+for axiom, ok in results.items():
+    print(f"{axiom}: {'OK' if ok else 'FAIL'}")`}
+                                />
+                            ),
+                        },
+                        {
+                            id: 'quiz',
+                            label: 'Quiz',
+                            icon: quizIcon,
+                            content: <Quiz bare questions={DEF_QUIZ} title="Check: Metric Spaces" />,
+                        },
+                    ]}
+                />
+            </Card>
         </div>
     );
 }
 
-// ── Section 2: Examples of Metric Spaces ────────────────────────────────────
-export function MetricSpaceExamples() {
+/* ═══════════════════════════════════════════════════════════════════════════
+   2. TopologyContent
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+export function TopologyContent({ topologyLab }: { topologyLab: React.ReactNode }) {
     return (
-        <div className="prose prose-slate max-w-none">
-            <h2 className="text-2xl font-bold text-indigo-700 border-b-2 border-indigo-200 pb-2 mb-4">
-                Examples of Metric Spaces
-            </h2>
+        <div className="space-y-10">
+            <Card title="1.3.2 · Topology of Metric Spaces">
+                <Tabs
+                    tabs={[
+                        {
+                            id: 'concept',
+                            label: 'Concept',
+                            icon: conceptIcon,
+                            content: (
+                                <ConceptStepper
+                                    steps={[
+                                        {
+                                            label: 'Open & Closed Sets',
+                                            content: (
+                                                <div>
+                                                    <Intuition>
+                                                        Open sets are the &quot;breathing room&quot; of mathematics: every point inside
+                                                        an open set can wiggle a little and still stay inside. Closed sets are
+                                                        their complement — they contain their own edges.
+                                                    </Intuition>
+                                                    <Reading>
+                                                        <p>
+                                                            A set <Latex>{'$U \\subseteq X$'}</Latex> is <strong>open</strong> if
+                                                            every point has a small ball that fits entirely inside it:
+                                                        </p>
+                                                        <div className="bg-[var(--surface-2)] p-4 rounded-lg my-4 text-center border border-[var(--border)]">
+                                                            <Latex>{'$\\forall\\, x \\in U,\\; \\exists\\, \\varepsilon > 0 : B(x, \\varepsilon) \\subseteq U$'}</Latex>
+                                                        </div>
+                                                        <p>
+                                                            A set <Latex>{'$C$'}</Latex> is <strong>closed</strong> if its complement is open,
+                                                            equivalently if it contains all its limit points. The open ball{' '}
+                                                            <Latex>{'$B(x,r) = \\{y : d(x,y) < r\\}$'}</Latex> excludes the
+                                                            boundary; the closed ball{' '}
+                                                            <Latex>{'$\\bar{B}(x,r) = \\{y : d(x,y) \\leq r\\}$'}</Latex>{' '}
+                                                            includes it.
+                                                        </p>
+                                                        <p>
+                                                            Open sets obey three axioms: arbitrary unions of open sets are open;
+                                                            finite intersections of open sets are open; and both{' '}
+                                                            <Latex>{'$\\varnothing$'}</Latex> and <Latex>{'$X$'}</Latex> are open.
+                                                        </p>
+                                                    </Reading>
+                                                </div>
+                                            ),
+                                        },
+                                        {
+                                            label: 'Continuity',
+                                            content: (
+                                                <div>
+                                                    <Intuition>
+                                                        Continuity means &quot;no jumps&quot;. Formally: for any desired output precision
+                                                        ε, you can find an input tolerance δ such that inputs within δ of x₀
+                                                        map to outputs within ε of f(x₀).
+                                                    </Intuition>
+                                                    <Reading>
+                                                        <p>
+                                                            A function{' '}
+                                                            <Latex>{'$f : (X, d_X) \\to (Y, d_Y)$'}</Latex> is{' '}
+                                                            <strong>continuous</strong> at <Latex>{'$x_0$'}</Latex> if:
+                                                        </p>
+                                                        <div className="bg-[var(--surface-2)] p-4 rounded-lg my-4 text-center border border-[var(--border)]">
+                                                            <Latex>{'$\\forall\\, \\varepsilon > 0\\; \\exists\\, \\delta > 0 : d_X(x, x_0) < \\delta \\Rightarrow d_Y(f(x), f(x_0)) < \\varepsilon$'}</Latex>
+                                                        </div>
+                                                        <p>
+                                                            The topological characterization is more elegant: <Latex>{'$f$'}</Latex> is
+                                                            continuous if and only if the preimage of every open set in{' '}
+                                                            <Latex>{'$Y$'}</Latex> is open in <Latex>{'$X$'}</Latex>.
+                                                        </p>
+                                                        <p>
+                                                            In ML, continuity of loss functions with respect to parameters is what
+                                                            makes gradient descent meaningful — small parameter changes lead to small
+                                                            loss changes.
+                                                        </p>
+                                                    </Reading>
+                                                </div>
+                                            ),
+                                        },
+                                        {
+                                            label: 'Compactness & Heine-Borel',
+                                            content: (
+                                                <div>
+                                                    <Intuition>
+                                                        A compact set is &quot;finite in spirit&quot; even if it contains infinitely many
+                                                        points. Every sequence in it has a convergent subsequence — you can never
+                                                        escape to infinity.
+                                                    </Intuition>
+                                                    <Reading>
+                                                        <p>
+                                                            A subset <Latex>{'$K \\subseteq X$'}</Latex> is <strong>compact</strong> if
+                                                            every open cover has a finite subcover. In{' '}
+                                                            <Latex>{'$\\mathbb{R}^n$'}</Latex>, the{' '}
+                                                            <strong>Heine-Borel theorem</strong> gives a clean characterization:
+                                                        </p>
+                                                        <div className="bg-[var(--surface-2)] p-4 rounded-lg my-4 text-center border border-[var(--border)]">
+                                                            <Latex>{'$K \\subseteq \\mathbb{R}^n \\text{ compact} \\iff K \\text{ is closed and bounded}$'}</Latex>
+                                                        </div>
+                                                        <p>Compact sets guarantee two fundamental results:</p>
+                                                        <ul>
+                                                            <li>
+                                                                <strong>Bolzano-Weierstrass:</strong> every sequence in{' '}
+                                                                <Latex>{'$K$'}</Latex> has a convergent subsequence.
+                                                            </li>
+                                                            <li>
+                                                                <strong>Extreme Value Theorem:</strong> any continuous{' '}
+                                                                <Latex>{'$f : K \\to \\mathbb{R}$'}</Latex> attains its max and min on{' '}
+                                                                <Latex>{'$K$'}</Latex>.
+                                                            </li>
+                                                        </ul>
+                                                        <p>
+                                                            In optimization, working over compact parameter sets guarantees that a
+                                                            minimum actually exists — critical for certifying neural network training.
+                                                        </p>
+                                                    </Reading>
+                                                </div>
+                                            ),
+                                        },
+                                    ]}
+                                />
+                            ),
+                        },
+                        {
+                            id: 'visualize',
+                            label: 'Visualize',
+                            icon: vizIcon,
+                            content: topologyLab,
+                        },
+                        {
+                            id: 'code',
+                            label: 'Code',
+                            icon: codeIcon,
+                            content: (
+                                <CodeBlock
+                                    title="topology.py"
+                                    runnable
+                                    language="python"
+                                    code={`import numpy as np
 
-            <p>
-                The concept of a metric space is quite general and can be instantiated in various ways,
-                depending on the nature of the set <Latex>{'$X$'}</Latex> and the
-                metric <Latex>{'$d$'}</Latex>. Some common examples of metric spaces include:
-            </p>
+# ε-δ continuity check for f : R → R
+def check_continuity(f, x0, epsilon, n_samples=1000):
+    """
+    Find the largest delta such that |x - x0| < delta => |f(x) - f(x0)| < epsilon.
+    Uses a grid search over candidate deltas.
+    """
+    fx0 = f(x0)
+    # Try deltas from small to large
+    for delta_exp in np.linspace(-4, 1, 200):
+        delta = 10 ** delta_exp
+        # Sample points near x0
+        xs = x0 + np.random.uniform(-delta, delta, n_samples)
+        fxs = np.array([f(x) for x in xs])
+        # Check that all satisfy |f(x) - f(x0)| < epsilon
+        if np.all(np.abs(fxs - fx0) < epsilon):
+            continue
+        else:
+            # Return the previous (working) delta
+            prev_delta = 10 ** (delta_exp - (1/200)*5)
+            return prev_delta
+    return 10.0  # large delta works
 
-            {/* ── Euclidean ── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                1. Euclidean Space
-            </h3>
-            <p>
-                The most familiar example is the <Latex>{'$n$'}</Latex>-dimensional Euclidean
-                space <Latex>{'$\\mathbb{R}^n$'}</Latex> equipped with the Euclidean metric.
-                For any two points <Latex>{'$\\mathbf{x} = (x_1, x_2, \\ldots, x_n)$'}</Latex> and <Latex>{'$\\mathbf{y} = (y_1, y_2, \\ldots, y_n)$'}</Latex>:
-            </p>
-            <div className="bg-emerald-50 border-l-4 border-emerald-400 p-4 my-4">
-                <div className="text-center">
-                    <Latex>{'$d(\\mathbf{x}, \\mathbf{y}) = \\sqrt{\\sum_{i=1}^{n} (x_i - y_i)^2}$'}</Latex>
-                </div>
-                <p className="text-xs text-emerald-800 mt-2">
-                    This corresponds to the straight-line distance and is fundamental in geometry and ML — used in clustering, classification, and k-NN.
-                </p>
-            </div>
+np.random.seed(42)
+f_cont = lambda x: 0.5 * x + 1   # continuous
+f_disc = lambda x: np.where(x < 0, 0.0, 1.0)  # step function (discontinuous at 0)
 
-            {/* ── Discrete ── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                2. Discrete Metric Space
-            </h3>
-            <p>
-                For any set <Latex>{'$X$'}</Latex>, the discrete metric is defined by:
-            </p>
-            <div className="bg-amber-50 border-l-4 border-amber-400 p-4 my-4">
-                <div className="text-center">
-                    <Latex>{'$d(x, y) = \\begin{cases} 0 & \\text{if } x = y \\\\ 1 & \\text{if } x \\neq y \\end{cases}$'}</Latex>
-                </div>
-                <p className="text-xs text-amber-800 mt-2">
-                    All distinct points are equidistant. Useful in theoretical analysis of extreme separation between points.
-                </p>
-            </div>
+x0, eps = 1.0, 0.5
+print(f"Continuous f at x=1:  delta ≈ {check_continuity(f_cont, x0, eps):.4f}")
+print(f"Discontinuous f at 0: delta ≈ {check_continuity(f_disc, 0.0, 0.1):.4f}")`}
+                                />
+                            ),
+                        },
+                        {
+                            id: 'exercise',
+                            label: 'Exercise',
+                            icon: exerciseIcon,
+                            content: (
+                                <CodingExercise
+                                    bare
+                                    title="Find Delta for Linear Function"
+                                    prompt={
+                                        <>
+                                            For a linear function <Latex>{'$f(x) = mx + b$'}</Latex>, the ε-δ relationship is
+                                            exact: <Latex>{'$\\delta = \\varepsilon / |m|$'}</Latex>. Implement a function that
+                                            computes the required δ given ε and the slope m.
+                                        </>
+                                    }
+                                    starterCode={`import numpy as np
 
-            {/* ── Manhattan ── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                3. Manhattan Distance (Taxicab Metric)
-            </h3>
-            <p>
-                In <Latex>{'$\\mathbb{R}^n$'}</Latex>, the Manhattan distance reflects grid-like paths:
-            </p>
-            <div className="bg-blue-50 border-l-4 border-blue-400 p-4 my-4">
-                <div className="text-center">
-                    <Latex>{'$d(\\mathbf{x}, \\mathbf{y}) = \\sum_{i=1}^{n} |x_i - y_i|$'}</Latex>
-                </div>
-                <p className="text-xs text-blue-800 mt-2">
-                    Widely used in image processing with pixel grids and problems where the grid structure is inherent.
-                </p>
-            </div>
+def delta_for_linear(m, epsilon):
+    """
+    Given slope m (non-zero) and epsilon > 0,
+    return the largest delta satisfying the epsilon-delta definition
+    for f(x) = m*x + b (b cancels out).
+    """
+    # TODO: return epsilon / |m|
+    pass
 
-            {/* ── Cosine ── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                4. Cosine Distance
-            </h3>
-            <p>
-                In high-dimensional vector spaces, such as word embeddings, cosine similarity is
-                often used. The related <strong>cosine distance</strong> is:
-            </p>
-            <div className="bg-violet-50 border-l-4 border-violet-400 p-4 my-4">
-                <div className="text-center">
-                    <Latex>{'$d(\\mathbf{x}, \\mathbf{y}) = 1 - \\frac{\\mathbf{x} \\cdot \\mathbf{y}}{\\|\\mathbf{x}\\| \\, \\|\\mathbf{y}\\|}$'}</Latex>
-                </div>
-                <p className="text-xs text-violet-800 mt-2">
-                    Measures the angle between vectors — direction matters more than magnitude. Essential in NLP and information retrieval.
-                </p>
-            </div>
+# Test cases
+print(f"m=2, eps=1.0: delta = {delta_for_linear(2, 1.0)}")
+print(f"m=0.5, eps=0.1: delta = {delta_for_linear(0.5, 0.1)}")
+print(f"m=-3, eps=0.3: delta = {delta_for_linear(-3, 0.3)}")`}
+                                    checks={`_check("m=2, eps=1 => delta=0.5", lambda: abs(delta_for_linear(2, 1.0) - 0.5) < 1e-9)
+_check("m=0.5, eps=0.1 => delta=0.2", lambda: abs(delta_for_linear(0.5, 0.1) - 0.2) < 1e-9)
+_check("m=-3, eps=0.3 => delta=0.1", lambda: abs(delta_for_linear(-3, 0.3) - 0.1) < 1e-9)`}
+                                    solution={`import numpy as np
 
-            {/* ── Hamming ── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                5. Hamming Distance
-            </h3>
-            <p>
-                For strings of equal length over a fixed alphabet, the Hamming distance counts the
-                number of positions where the corresponding symbols differ:
-            </p>
-            <div className="bg-pink-50 border-l-4 border-pink-400 p-4 my-4">
-                <div className="text-center">
-                    <Latex>{'$d(s_1, s_2) = \\sum_{i=1}^{n} \\delta(s_1[i], s_2[i])$'}</Latex>
-                </div>
-                <p className="text-xs text-pink-800 mt-2">
-                    where <Latex>{'$\\delta(a, b) = 1$'}</Latex> if <Latex>{'$a \\neq b$'}</Latex>, and 0 otherwise.
-                    Used in coding theory, error correction, and information retrieval.
-                </p>
-            </div>
+def delta_for_linear(m, epsilon):
+    return epsilon / abs(m)
 
-            <div className="bg-slate-100 border border-slate-200 rounded-lg p-4 mt-6">
-                <p className="text-sm text-slate-700">
-                    <strong>Choosing the right metric</strong> is crucial in machine learning. The metric determines
-                    how the model perceives relationships between data points and how it learns to focus on
-                    relevant features. Euclidean distance works well for spatial data, cosine distance excels
-                    for high-dimensional embeddings, and Manhattan distance is natural for grid-structured data.
-                </p>
-            </div>
+print(f"m=2, eps=1.0: delta = {delta_for_linear(2, 1.0)}")
+print(f"m=0.5, eps=0.1: delta = {delta_for_linear(0.5, 0.1)}")
+print(f"m=-3, eps=0.3: delta = {delta_for_linear(-3, 0.3)}")`}
+                                />
+                            ),
+                        },
+                        {
+                            id: 'quiz',
+                            label: 'Quiz',
+                            icon: quizIcon,
+                            content: <Quiz bare questions={TOPO_QUIZ} title="Check: Topology" />,
+                        },
+                    ]}
+                />
+            </Card>
         </div>
     );
 }
 
-// ── Section 3: Convergence and Completeness ─────────────────────────────────
-export function ConvergenceCompleteness() {
+/* ═══════════════════════════════════════════════════════════════════════════
+   3. MappingsContent
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+export function MappingsContent({
+    contractionLab,
+    preservationLab,
+}: {
+    contractionLab: React.ReactNode;
+    preservationLab: React.ReactNode;
+}) {
     return (
-        <div className="prose prose-slate max-w-none">
-            <h2 className="text-2xl font-bold text-indigo-700 border-b-2 border-indigo-200 pb-2 mb-4">
-                Convergence and Completeness
-            </h2>
+        <div className="space-y-10">
+            <Card title="1.3.3 · Mappings Between Metric Spaces">
+                <Tabs
+                    tabs={[
+                        {
+                            id: 'concept',
+                            label: 'Concept',
+                            icon: conceptIcon,
+                            content: (
+                                <ConceptStepper
+                                    steps={[
+                                        {
+                                            label: 'Isometries',
+                                            content: (
+                                                <div>
+                                                    <Intuition>
+                                                        An isometry is the ultimate distance-preserving map. Rotations,
+                                                        reflections, and translations in ℝ² are all isometries — they move
+                                                        points around but never stretch or shrink distances.
+                                                    </Intuition>
+                                                    <Reading>
+                                                        <p>
+                                                            A map <Latex>{'$f : (X, d_X) \\to (Y, d_Y)$'}</Latex> is an{' '}
+                                                            <strong>isometry</strong> if it preserves all distances:
+                                                        </p>
+                                                        <div className="bg-[var(--surface-2)] p-4 rounded-lg my-4 text-center border border-[var(--border)]">
+                                                            <Latex>{'$d_Y(f(x_1), f(x_2)) = d_X(x_1, x_2) \\quad \\forall\\, x_1, x_2 \\in X$'}</Latex>
+                                                        </div>
+                                                        <p>
+                                                            Isometries are automatically injective (one-to-one) because{' '}
+                                                            <Latex>{'$f(x_1) = f(x_2)$'}</Latex> implies{' '}
+                                                            <Latex>{'$d_X(x_1, x_2) = 0$'}</Latex>, hence{' '}
+                                                            <Latex>{'$x_1 = x_2$'}</Latex>.
+                                                        </p>
+                                                        <p>
+                                                            In neural networks, layers that act as near-isometries (like orthogonal
+                                                            weight matrices) avoid information loss and vanishing gradients — preserving
+                                                            the geometric structure of the input.
+                                                        </p>
+                                                    </Reading>
+                                                </div>
+                                            ),
+                                        },
+                                        {
+                                            label: 'Contraction Mappings',
+                                            content: (
+                                                <div>
+                                                    <Intuition>
+                                                        A contraction is a map that brings points closer together on every
+                                                        application. Iterate it repeatedly and all starting points funnel
+                                                        toward the same fixed destination.
+                                                    </Intuition>
+                                                    <Reading>
+                                                        <p>
+                                                            A map <Latex>{'$f : X \\to X$'}</Latex> is a{' '}
+                                                            <strong>contraction</strong> if there exists{' '}
+                                                            <Latex>{'$0 \\leq c < 1$'}</Latex> such that:
+                                                        </p>
+                                                        <div className="bg-[var(--surface-2)] p-4 rounded-lg my-4 text-center border border-[var(--border)]">
+                                                            <Latex>{'$d(f(x_1), f(x_2)) \\leq c \\cdot d(x_1, x_2) \\quad \\forall\\, x_1, x_2 \\in X$'}</Latex>
+                                                        </div>
+                                                        <p>
+                                                            The constant <Latex>{'$c$'}</Latex> is the <strong>Lipschitz constant</strong>.
+                                                            For <Latex>{'$c < 1$'}</Latex> (contraction), every iteration reduces
+                                                            distance by at least a factor of <Latex>{'$c$'}</Latex>:
+                                                        </p>
+                                                        <ul>
+                                                            <li>
+                                                                <strong>c &lt; 1</strong> — contraction: distances shrink, unique fixed point guaranteed
+                                                            </li>
+                                                            <li>
+                                                                <strong>c = 1</strong> — isometry: distances preserved, no guaranteed fixed point
+                                                            </li>
+                                                            <li>
+                                                                <strong>c &gt; 1</strong> — expansion: distances grow, iterations diverge
+                                                            </li>
+                                                        </ul>
+                                                    </Reading>
+                                                </div>
+                                            ),
+                                        },
+                                        {
+                                            label: 'Banach Fixed-Point Theorem',
+                                            content: (
+                                                <div>
+                                                    <Intuition>
+                                                        The Banach theorem is a convergence guarantee machine: given a complete
+                                                        space and a contraction, you always find the unique fixed point — no
+                                                        matter where you start. This is the mathematical engine behind iterative
+                                                        solvers and many optimization algorithms.
+                                                    </Intuition>
+                                                    <Reading>
+                                                        <p>
+                                                            <strong>Theorem (Banach, 1922).</strong> Let{' '}
+                                                            <Latex>{'$(X, d)$'}</Latex> be a <em>complete</em> metric space and{' '}
+                                                            <Latex>{'$f : X \\to X$'}</Latex> a contraction with constant{' '}
+                                                            <Latex>{'$c < 1$'}</Latex>. Then:
+                                                        </p>
+                                                        <ol>
+                                                            <li>
+                                                                <Latex>{'$f$'}</Latex> has a <strong>unique fixed point</strong>{' '}
+                                                                <Latex>{'$x^* \\in X$'}</Latex> with{' '}
+                                                                <Latex>{'$f(x^*) = x^*$'}</Latex>.
+                                                            </li>
+                                                            <li>
+                                                                For any <Latex>{'$x_0 \\in X$'}</Latex>, the sequence{' '}
+                                                                <Latex>{'$x_{n+1} = f(x_n)$'}</Latex> converges to{' '}
+                                                                <Latex>{'$x^*$'}</Latex>.
+                                                            </li>
+                                                            <li>
+                                                                Error bound:{' '}
+                                                                <Latex>{'$d(x_n, x^*) \\leq \\frac{c^n}{1-c} d(x_0, x_1)$'}</Latex>.
+                                                            </li>
+                                                        </ol>
+                                                        <p>
+                                                            In ML, if a gradient-descent update rule is a contraction on parameter
+                                                            space, Banach guarantees convergence to a unique optimum — providing the
+                                                            rigorous foundation for why iterative training works.
+                                                        </p>
+                                                    </Reading>
+                                                </div>
+                                            ),
+                                        },
+                                    ]}
+                                />
+                            ),
+                        },
+                        {
+                            id: 'visualize',
+                            label: 'Visualize',
+                            icon: vizIcon,
+                            content: (
+                                <div className="flex flex-col gap-6">
+                                    {contractionLab}
+                                    {preservationLab}
+                                </div>
+                            ),
+                        },
+                        {
+                            id: 'code',
+                            label: 'Code',
+                            icon: codeIcon,
+                            content: (
+                                <CodeBlock
+                                    title="banach.py"
+                                    runnable
+                                    language="python"
+                                    code={`import numpy as np
 
-            <p>
-                Convergence and completeness are fundamental concepts in the study of metric spaces,
-                providing a framework for understanding the behavior of sequences and the structure
-                of the space itself.
-            </p>
+def banach_iterate(f, x0, tol=1e-8, max_iter=200):
+    """
+    Apply Banach fixed-point iteration: x_{n+1} = f(x_n).
+    Returns (fixed_point, iterations, history).
+    """
+    x = x0
+    history = [x]
+    for i in range(max_iter):
+        x_new = f(x)
+        history.append(x_new)
+        if abs(x_new - x) < tol:
+            return x_new, i + 1, history
+        x = x_new
+    return x, max_iter, history
 
-            {/* ── Convergence ── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                Convergence of Sequences
-            </h3>
+# Example: f(x) = 0.5x + 1, fixed point x* = 2
+f = lambda x: 0.5 * x + 1
+x_star, n_iter, hist = banach_iterate(f, x0=0.0)
+print(f"Fixed point: {x_star:.8f}  (exact: 2.0)")
+print(f"Converged in {n_iter} iterations")
 
-            <p>
-                A sequence <Latex>{'$\\{x_n\\}$'}</Latex> in a metric space <Latex>{'$(X, d)$'}</Latex> is
-                said to <strong>converge</strong> to a point <Latex>{'$x \\in X$'}</Latex> if, for
-                every <Latex>{'$\\varepsilon > 0$'}</Latex>, there exists an
-                integer <Latex>{'$N$'}</Latex> such that for all <Latex>{'$n \\geq N$'}</Latex>:
-            </p>
+# Error bound using Banach formula: c^n / (1-c) * d(x0, x1)
+c = 0.5
+x0, x1 = hist[0], hist[1]
+for n in [5, 10, 20]:
+    bound = (c**n / (1 - c)) * abs(x1 - x0)
+    actual = abs(hist[min(n, len(hist)-1)] - x_star)
+    print(f"n={n:2d}: bound={bound:.6f}, actual={actual:.6f}")`}
+                                />
+                            ),
+                        },
+                        {
+                            id: 'exercise',
+                            label: 'Exercise',
+                            icon: exerciseIcon,
+                            content: (
+                                <CodingExercise
+                                    bare
+                                    title="Verify Contraction and Find Fixed Point"
+                                    prompt={
+                                        <>
+                                            Given <Latex>{'$f(x) = 0.7x + 2$'}</Latex>, verify it is a contraction on{' '}
+                                            <Latex>{'$\\mathbb{R}$'}</Latex> and find its unique fixed point by iteration.
+                                        </>
+                                    }
+                                    starterCode={`import numpy as np
 
-            <div className="bg-slate-50 p-4 rounded-lg my-4 border border-slate-200 text-center">
-                <Latex>{'$d(x_n, x) < \\varepsilon$'}</Latex>
-            </div>
+def is_contraction(f, x_samples, c_bound=1.0):
+    """
+    Empirically check if f is a contraction with Lipschitz constant < c_bound.
+    Sample many pairs and check d(f(x),f(y)) <= c_bound * d(x,y).
+    """
+    # TODO: check all pairs of samples
+    pass
 
-            <p>
-                In other words, the elements of the sequence eventually get arbitrarily close
-                to <Latex>{'$x$'}</Latex>, and <Latex>{'$x$'}</Latex> is called the <strong>limit</strong> of
-                the sequence, denoted <Latex>{'$\\lim_{n \\to \\infty} x_n = x$'}</Latex>.
-            </p>
+def find_fixed_point(f, x0=0.0, tol=1e-8, max_iter=500):
+    """
+    Banach iteration: return the fixed point x* such that f(x*) = x*.
+    """
+    # TODO: iterate until convergence
+    pass
 
-            <div className="bg-violet-50 border-l-4 border-violet-400 p-4 my-6">
-                <p className="font-semibold text-violet-800 mb-2">Convergence in Machine Learning</p>
-                <p className="text-sm text-violet-900">
-                    This concept is crucial in ML, particularly in the analysis of algorithms that
-                    iteratively update models to minimize a loss function. Understanding the conditions
-                    under which parameter update sequences converge ensures that the algorithm behaves
-                    predictably and leads to an optimal solution.
-                </p>
-            </div>
+f = lambda x: 0.7 * x + 2
+print("Is contraction (c<1)?", is_contraction(f, np.linspace(-10, 10, 100), c_bound=1.0))
+print("Fixed point:", find_fixed_point(f))`}
+                                    checks={`f = lambda x: 0.7 * x + 2
+_check("is_contraction returns True", lambda: is_contraction(f, np.linspace(-10,10,100), 1.0) == True)
+fp = find_fixed_point(f)
+_check("fixed point near 20/3", lambda: abs(fp - 20/3) < 1e-5)`}
+                                    solution={`import numpy as np
 
-            {/* ── Cauchy Sequences ── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                Cauchy Sequences and Completeness
-            </h3>
+def is_contraction(f, x_samples, c_bound=1.0):
+    n = len(x_samples)
+    for i in range(n):
+        for j in range(i+1, n):
+            dx = abs(x_samples[i] - x_samples[j])
+            if dx < 1e-12:
+                continue
+            dfx = abs(f(x_samples[i]) - f(x_samples[j]))
+            if dfx > c_bound * dx + 1e-9:
+                return False
+    return True
 
-            <p>
-                A sequence <Latex>{'$\\{x_n\\}$'}</Latex> is a <strong>Cauchy sequence</strong> if, for
-                every <Latex>{'$\\varepsilon > 0$'}</Latex>, there exists an
-                integer <Latex>{'$N$'}</Latex> such that for all <Latex>{'$m, n \\geq N$'}</Latex>:
-            </p>
+def find_fixed_point(f, x0=0.0, tol=1e-8, max_iter=500):
+    x = x0
+    for _ in range(max_iter):
+        x_new = f(x)
+        if abs(x_new - x) < tol:
+            return x_new
+        x = x_new
+    return x
 
-            <div className="bg-slate-50 p-4 rounded-lg my-4 border border-slate-200 text-center">
-                <Latex>{'$d(x_m, x_n) < \\varepsilon$'}</Latex>
-            </div>
-
-            <p>
-                A metric space <Latex>{'$(X, d)$'}</Latex> is said to be <strong>complete</strong> if
-                every Cauchy sequence in <Latex>{'$X$'}</Latex> converges to a point
-                in <Latex>{'$X$'}</Latex>. Completeness ensures that the space has no &ldquo;holes&rdquo;
-                or &ldquo;gaps&rdquo;.
-            </p>
-
-            <div className="bg-amber-50 border-l-4 border-amber-400 p-5 my-6">
-                <p className="font-semibold text-amber-800 mb-2">Theorem (Completeness of Metric Spaces)</p>
-                <p className="text-sm text-amber-900 mb-2">
-                    Let <Latex>{'$(X, d)$'}</Latex> be a metric space.
-                    Then <Latex>{'$X$'}</Latex> is complete if and only if every Cauchy sequence
-                    in <Latex>{'$X$'}</Latex> has a limit in <Latex>{'$X$'}</Latex>.
-                </p>
-                <div className="text-center mt-3">
-                    <Latex>{'$\\{x_n\\} \\text{ Cauchy} \\implies \\exists\\, x \\in X : \\lim_{n \\to \\infty} x_n = x$'}</Latex>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
-                <div className="bg-emerald-50 border-l-4 border-emerald-400 p-4">
-                    <h4 className="font-bold text-emerald-800 mb-2 text-sm">Complete Spaces</h4>
-                    <p className="text-xs text-emerald-900">
-                        <Latex>{'$\\mathbb{R}^n$'}</Latex> with the Euclidean metric is complete.
-                        Every convergent sequence has its limit within the space.
-                        Banach and Hilbert spaces are complete normed and inner product spaces.
-                    </p>
-                </div>
-                <div className="bg-red-50 border-l-4 border-red-400 p-4">
-                    <h4 className="font-bold text-red-800 mb-2 text-sm">Incomplete Spaces</h4>
-                    <p className="text-xs text-red-900">
-                        <Latex>{'$\\mathbb{Q}$'}</Latex> (rationals) with the standard metric is
-                        incomplete — Cauchy sequences can converge to
-                        irrational numbers like <Latex>{'$\\sqrt{2}$'}</Latex>, which are not
-                        in <Latex>{'$\\mathbb{Q}$'}</Latex>.
-                    </p>
-                </div>
-            </div>
-
-            {/* ── Optimization Context ── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                Completeness in Neural Network Optimization
-            </h3>
-
-            <p>
-                In training deep neural networks, the parameter space is often modeled as a
-                high-dimensional metric space, and the completeness of this space ensures that
-                sequences of iteratively updated parameters converge to a well-defined limit,
-                representing the optimal set of parameters that minimizes the loss function.
-            </p>
-
-            <div className="bg-indigo-50 border-l-4 border-indigo-400 p-4 my-6">
-                <p className="font-semibold text-indigo-800 mb-2">Gradient Descent and Completeness</p>
-                <p className="text-sm text-indigo-900">
-                    Without completeness, the optimization process might diverge or oscillate without
-                    reaching a stable solution. The completeness of <Latex>{'$\\mathbb{R}^n$'}</Latex> guarantees
-                    that gradient descent trajectories can reach their optimal destination, provided
-                    appropriate conditions on the learning rate and loss landscape are met.
-                </p>
-            </div>
+f = lambda x: 0.7 * x + 2
+print("Is contraction (c<1)?", is_contraction(f, np.linspace(-10, 10, 100), c_bound=1.0))
+print("Fixed point:", find_fixed_point(f))`}
+                                />
+                            ),
+                        },
+                        {
+                            id: 'quiz',
+                            label: 'Quiz',
+                            icon: quizIcon,
+                            content: <Quiz bare questions={MAP_QUIZ} title="Check: Mappings & Banach" />,
+                        },
+                    ]}
+                />
+            </Card>
         </div>
     );
 }
 
-// ── Section 4: Topology of Metric Spaces ─────────────────────────────────
-export function TopologyOfMetricSpaces() {
-    return (
-        <div className="prose prose-slate max-w-none">
-            <h2 className="text-2xl font-bold text-indigo-700 border-b-2 border-indigo-200 pb-2 mb-4">
-                Topology of Metric Spaces
-            </h2>
+/* ─── Legacy named exports (kept for backward compatibility) ─────────────── */
 
-            <p>
-                Topology provides a framework for understanding the structure and properties of
-                metric spaces beyond mere distances. Here we delve into the fundamental
-                topological concepts that are crucial for studying the geometry, symmetry, and
-                continuity properties leveraged in the design of intelligent systems like transformers.
-            </p>
-
-            {/* ─── Open Sets ─── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                Open Sets
-            </h3>
-
-            <p>
-                An <strong>open set</strong> in a metric space <Latex>{'$(X, d)$'}</Latex> is a
-                subset <Latex>{'$U \\subseteq X$'}</Latex> such that for every
-                point <Latex>{'$x \\in U$'}</Latex>, there exists a radius <Latex>{'$\\varepsilon > 0$'}</Latex> for
-                which the open ball centered at <Latex>{'$x$'}</Latex> is entirely contained within <Latex>{'$U$'}</Latex>:
-            </p>
-
-            <div className="bg-slate-50 p-4 rounded-lg my-4 border border-slate-200 text-center">
-                <Latex>{'$\\forall\\, x \\in U,\\; \\exists\\, \\varepsilon > 0 : B(x, \\varepsilon) = \\{y \\in X \\mid d(x, y) < \\varepsilon\\} \\subseteq U$'}</Latex>
-            </div>
-
-            <p>
-                Open sets are the building blocks of the topology on <Latex>{'$X$'}</Latex>, satisfying:
-            </p>
-
-            <div className="bg-slate-50 p-5 rounded-lg my-4 border border-slate-200 space-y-2">
-                <div className="flex items-start gap-3">
-                    <span className="bg-indigo-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
-                    <div>The union of any collection of open sets is open.</div>
-                </div>
-                <div className="flex items-start gap-3">
-                    <span className="bg-indigo-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
-                    <div>The intersection of a <em>finite</em> number of open sets is open.</div>
-                </div>
-                <div className="flex items-start gap-3">
-                    <span className="bg-indigo-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
-                    <div>The empty set <Latex>{'$\\varnothing$'}</Latex> and the entire space <Latex>{'$X$'}</Latex> are open.</div>
-                </div>
-            </div>
-
-            {/* ─── Closed Sets ─── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                Closed Sets
-            </h3>
-
-            <p>
-                A <strong>closed set</strong> <Latex>{'$C \\subseteq X$'}</Latex> is a subset whose
-                complement <Latex>{'$X \\setminus C$'}</Latex> is open. Equivalently, <Latex>{'$C$'}</Latex> contains
-                all its limit points:
-            </p>
-
-            <div className="bg-slate-50 p-4 rounded-lg my-4 border border-slate-200 text-center">
-                <Latex>{'$\\text{If } \\{x_n\\} \\subseteq C \\text{ and } \\lim_{n \\to \\infty} x_n = x, \\text{ then } x \\in C$'}</Latex>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
-                <div className="bg-indigo-50 border-l-4 border-indigo-400 p-4">
-                    <h4 className="font-bold text-indigo-800 mb-2 text-sm">Open Ball (Open Set)</h4>
-                    <p className="text-xs text-indigo-900">
-                        <Latex>{'$B(x, r) = \\{y : d(x,y) < r\\}$'}</Latex> — boundary points
-                        are <em>excluded</em>. Dashed boundary in visualization.
-                    </p>
-                </div>
-                <div className="bg-emerald-50 border-l-4 border-emerald-400 p-4">
-                    <h4 className="font-bold text-emerald-800 mb-2 text-sm">Closed Ball (Closed Set)</h4>
-                    <p className="text-xs text-emerald-900">
-                        <Latex>{'$\\overline{B}(x, r) = \\{y : d(x,y) \\leq r\\}$'}</Latex> — boundary points
-                        are <em>included</em>. Solid boundary in visualization.
-                    </p>
-                </div>
-            </div>
-
-            {/* ─── Continuity ─── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                Continuity
-            </h3>
-
-            <p>
-                A function <Latex>{'$f : (X, d_X) \\to (Y, d_Y)$'}</Latex> between two metric spaces
-                is <strong>continuous</strong> at a point <Latex>{'$x \\in X$'}</Latex> if, for
-                every <Latex>{'$\\varepsilon > 0$'}</Latex>, there exists
-                a <Latex>{'$\\delta > 0$'}</Latex> such that:
-            </p>
-
-            <div className="bg-amber-50 border-l-4 border-amber-400 p-5 my-6">
-                <p className="font-semibold text-amber-800 mb-2">ε-δ Definition</p>
-                <div className="text-center my-2">
-                    <Latex>{'$d_X(x, x_0) < \\delta \\implies d_Y(f(x), f(x_0)) < \\varepsilon$'}</Latex>
-                </div>
-                <p className="text-sm text-amber-900 mt-2">
-                    Small changes in input result in small changes in output — no &ldquo;jumps&rdquo; or &ldquo;breaks&rdquo;.
-                    In topology, <Latex>{'$f$'}</Latex> is continuous iff the preimage of every open set
-                    in <Latex>{'$Y$'}</Latex> is open in <Latex>{'$X$'}</Latex>.
-                </p>
-            </div>
-
-            {/* ─── Compactness ─── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                Compactness
-            </h3>
-
-            <p>
-                A subset <Latex>{'$K \\subseteq X$'}</Latex> is <strong>compact</strong> if every open cover
-                of <Latex>{'$K$'}</Latex> has a finite subcover. An open cover is a collection of open
-                sets <Latex>{'$\\{U_\\alpha\\}$'}</Latex> such
-                that <Latex>{'$K \\subseteq \\bigcup_\\alpha U_\\alpha$'}</Latex>.
-            </p>
-
-            <div className="bg-violet-50 border-l-4 border-violet-400 p-4 my-6">
-                <p className="font-semibold text-violet-800 mb-2">Heine–Borel Theorem</p>
-                <p className="text-sm text-violet-900">
-                    In <Latex>{'$\\mathbb{R}^n$'}</Latex>, a subset is compact if and only if it
-                    is <strong>closed and bounded</strong>. Compact sets guarantee:
-                </p>
-                <ul className="text-sm text-violet-900 mt-2 space-y-1 list-disc list-inside">
-                    <li>Every sequence has a convergent subsequence (sequential compactness)</li>
-                    <li>Continuous functions attain their max/min (extreme value theorem)</li>
-                </ul>
-            </div>
-
-            {/* ─── ML Applications ─── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                Applications in Machine Learning
-            </h3>
-
-            <p>
-                In the context of ML and attention mechanisms, compactness ensures the existence of
-                solutions when optimizing over compact parameter sets. The <strong>Arzelà–Ascoli
-                    theorem</strong> provides conditions under which a family of continuous functions is
-                relatively compact — any sequence within the family has a uniformly convergent
-                subsequence.
-            </p>
-
-            <div className="bg-indigo-50 border-l-4 border-indigo-400 p-4 my-6">
-                <p className="font-semibold text-indigo-800 mb-2">Neural Network Stability</p>
-                <p className="text-sm text-indigo-900">
-                    Continuity and compactness intersect in studying the stability and generalization
-                    of ML models. The Arzelà–Ascoli theorem helps understand how neural networks
-                    approximate functions and how well they generalize to unseen data — ensuring
-                    that the transformation of data through the network preserves essential properties.
-                </p>
-            </div>
-        </div>
-    );
-}
-
-// ── Section 5: Mappings Between Metric Spaces ───────────────────────────────
-export function MappingsBetweenMetricSpaces() {
-    return (
-        <div className="prose prose-slate max-w-none">
-            <h2 className="text-2xl font-bold text-indigo-700 border-b-2 border-indigo-200 pb-2 mb-4">
-                Mappings Between Metric Spaces
-            </h2>
-
-            <p>
-                Mappings between metric spaces reveal deep insights into the geometry and
-                symmetry of spaces, and are foundational to many concepts in analysis, geometry,
-                and machine learning. In the context of transformers and attention mechanisms,
-                understanding these mappings helps us explore how information is processed and
-                how distances between data points are preserved or altered.
-            </p>
-
-            {/* ─── Isometries ─── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                Isometries
-            </h3>
-
-            <p>
-                An <strong>isometry</strong> is a mapping that preserves distances. If <Latex>{'$(X, d_X)$'}</Latex> and <Latex>{'$(Y, d_Y)$'}</Latex> are
-                metric spaces, a function <Latex>{'$f : X \\to Y$'}</Latex> is an isometry if for
-                all <Latex>{'$x_1, x_2 \\in X$'}</Latex>:
-            </p>
-
-            <div className="bg-emerald-50 border-l-4 border-emerald-400 p-4 my-4">
-                <div className="text-center">
-                    <Latex>{'$d_Y(f(x_1), f(x_2)) = d_X(x_1, x_2)$'}</Latex>
-                </div>
-                <p className="text-xs text-emerald-800 mt-2">
-                    The structure of <Latex>{'$X$'}</Latex> is perfectly preserved. In <Latex>{'$\\mathbb{R}^n$'}</Latex>,
-                    rotations, translations, and reflections are isometries.
-                </p>
-            </div>
-
-            <div className="bg-indigo-50 border-l-4 border-indigo-400 p-4 my-6">
-                <p className="font-semibold text-indigo-800 mb-2">Isometries in Neural Networks</p>
-                <p className="text-sm text-indigo-900">
-                    In applications like image processing, it is often desirable that network
-                    transformations preserve the spatial relationships between pixels — a type
-                    of isometry. This ensures that geometric properties of the data survive
-                    through different layers.
-                </p>
-            </div>
-
-            {/* ─── Contractions ─── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                Contraction Mappings
-            </h3>
-
-            <p>
-                A <strong>contraction mapping</strong> is a function <Latex>{'$f : X \\to X$'}</Latex> where
-                distances are strictly reduced. There exists a constant <Latex>{'$0 \\leq c < 1$'}</Latex> such
-                that for all <Latex>{'$x_1, x_2 \\in X$'}</Latex>:
-            </p>
-
-            <div className="bg-amber-50 border-l-4 border-amber-400 p-4 my-4">
-                <div className="text-center">
-                    <Latex>{'$d(f(x_1), f(x_2)) \\leq c \\cdot d(x_1, x_2)$'}</Latex>
-                </div>
-                <p className="text-xs text-amber-800 mt-2">
-                    The constant <Latex>{'$c$'}</Latex> is the <strong>Lipschitz constant</strong>. Contractions
-                    bring points closer together, with profound implications for fixed points — points <Latex>{'$x^*$'}</Latex> where <Latex>{'$f(x^*) = x^*$'}</Latex>.
-                </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 my-6">
-                <div className="bg-emerald-50 border-l-4 border-emerald-400 p-3">
-                    <h4 className="font-bold text-emerald-800 mb-1 text-sm">c &lt; 1</h4>
-                    <p className="text-xs text-emerald-900">Contraction — distances shrink. Converges to unique fixed point.</p>
-                </div>
-                <div className="bg-amber-50 border-l-4 border-amber-400 p-3">
-                    <h4 className="font-bold text-amber-800 mb-1 text-sm">c = 1</h4>
-                    <p className="text-xs text-amber-900">Isometry — distances preserved. No guaranteed fixed point.</p>
-                </div>
-                <div className="bg-red-50 border-l-4 border-red-400 p-3">
-                    <h4 className="font-bold text-red-800 mb-1 text-sm">c &gt; 1</h4>
-                    <p className="text-xs text-red-900">Expansion — distances grow. Iterations diverge.</p>
-                </div>
-            </div>
-
-            {/* ─── Banach Theorem ─── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                The Banach Fixed-Point Theorem
-            </h3>
-
-            <div className="bg-violet-50 border-l-4 border-violet-400 p-5 my-6">
-                <p className="font-semibold text-violet-800 mb-2">Theorem (Banach Fixed-Point Theorem)</p>
-                <p className="text-sm text-violet-900 mb-3">
-                    Let <Latex>{'$(X, d)$'}</Latex> be a <strong>complete</strong> metric space
-                    and <Latex>{'$f : X \\to X$'}</Latex> a contraction with Lipschitz
-                    constant <Latex>{'$c < 1$'}</Latex>. Then:
-                </p>
-                <div className="bg-white rounded-lg p-3 space-y-2">
-                    <div className="flex items-start gap-3">
-                        <span className="bg-violet-600 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
-                        <div className="text-sm text-violet-900">
-                            <Latex>{'$f$'}</Latex> has a <strong>unique fixed point</strong> <Latex>{'$x^* \\in X$'}</Latex> such that <Latex>{'$f(x^*) = x^*$'}</Latex>.
-                        </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                        <span className="bg-violet-600 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
-                        <div className="text-sm text-violet-900">
-                            For any <Latex>{'$x_0 \\in X$'}</Latex>, the sequence <Latex>{'$x_{n+1} = f(x_n)$'}</Latex> converges
-                            to <Latex>{'$x^*$'}</Latex>.
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* ─── ML Applications ─── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                Applications in Machine Learning
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
-                <div className="bg-indigo-50 border-l-4 border-indigo-400 p-4">
-                    <h4 className="font-bold text-indigo-800 mb-2 text-sm">Optimization Convergence</h4>
-                    <p className="text-xs text-indigo-900">
-                        If the parameter update rule in gradient descent is a contraction, the Banach
-                        theorem guarantees convergence to a unique optimal parameter set.
-                    </p>
-                </div>
-                <div className="bg-violet-50 border-l-4 border-violet-400 p-4">
-                    <h4 className="font-bold text-violet-800 mb-2 text-sm">Attention Weight Refinement</h4>
-                    <p className="text-xs text-violet-900">
-                        Iterative refinement of attention weights modeled as contractions ensures
-                        convergence to stable weights — improving robustness and performance.
-                    </p>
-                </div>
-            </div>
-
-            <div className="bg-pink-50 border-l-4 border-pink-400 p-4 my-6">
-                <p className="font-semibold text-pink-800 mb-2">RNN Stability</p>
-                <p className="text-sm text-pink-900">
-                    In recurrent neural networks, ensuring that each step&apos;s transformation is a contraction
-                    prevents gradient explosion or vanishing, maintaining stability of the learning process.
-                    The Banach fixed-point theorem provides the mathematical guarantee.
-                </p>
-            </div>
-        </div>
-    );
-}
+export function MetricSpaceDefinition() { return null; }
+export function MetricSpaceExamples() { return null; }
+export function ConvergenceCompleteness() { return null; }
+export function TopologyOfMetricSpaces() { return null; }
+export function MappingsBetweenMetricSpaces() { return null; }
 
 export default function MetricSpacesContent() {
-    return (
-        <div className="space-y-12">
-            <MetricSpaceDefinition />
-            <MetricSpaceExamples />
-            <ConvergenceCompleteness />
-            <TopologyOfMetricSpaces />
-            <MappingsBetweenMetricSpaces />
-        </div>
-    );
+    return null; // backwards compat
 }

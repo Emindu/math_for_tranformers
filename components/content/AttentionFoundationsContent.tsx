@@ -1,593 +1,700 @@
 "use client";
 
 import React from 'react';
-import Latex from 'react-latex-next';
 import 'katex/dist/katex.min.css';
+import Latex from 'react-latex-next';
+import { BookOpen, Shapes, Code2, Dumbbell, ListChecks } from 'lucide-react';
+import Tabs from '@/components/ui/Tabs';
+import ConceptStepper from '@/components/ui/ConceptStepper';
+import Intuition from '@/components/ui/Intuition';
+import CodeBlock from '@/components/ui/CodeBlock';
+import Quiz, { QuizQuestion } from '@/components/ui/Quiz';
+import CodingExercise from '@/components/ui/CodingExercise';
 
-// ── Section 1: Attention as a Mapping ─────────────────────────────────────────
-export function AttentionAsMapping() {
+/* ───────────────────────── Icons ───────────────────────── */
+
+const conceptIcon   = <BookOpen   size={15} />;
+const visualizeIcon = <Shapes     size={15} />;
+const codeIcon      = <Code2      size={15} />;
+const exerciseIcon  = <Dumbbell   size={15} />;
+const quizIcon      = <ListChecks size={15} />;
+
+/* ───────────────────────── Layout helpers ───────────────────────── */
+
+function Card({ title, children }: { title: React.ReactNode; children: React.ReactNode }) {
     return (
-        <div className="prose prose-slate max-w-none">
-            <h2 className="text-2xl font-bold text-indigo-700 border-b-2 border-indigo-200 pb-2 mb-4">
-                Attention as a Mapping
-            </h2>
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
+            <h2 className="mb-4 text-xl font-bold tracking-tight text-[var(--foreground)]">{title}</h2>
+            {children}
+        </section>
+    );
+}
 
-            <p>
-                Attention mechanisms are at the heart of modern transformer architectures, providing
-                a powerful method for dynamically focusing on relevant parts of the input data.
-                Mathematically, attention can be understood as a <strong>mapping</strong> that transforms input
-                features into output features by assigning different weights to different parts of the
-                input. This mapping is central to the model&apos;s ability to capture dependencies and
-                relationships across different elements in the input sequence.
-            </p>
+function Reading({ children }: { children: React.ReactNode }) {
+    return (
+        <article className="prose prose-slate" style={{ maxWidth: 'none' }}>
+            {children}
+        </article>
+    );
+}
 
-            {/* ─── Formulation ─── */}
-            <h3 className="text-xl font-bold text-indigo-700 border-b border-indigo-200 pb-1 mt-8 mb-4">
-                Formulation of Attention as a Function
-            </h3>
+/* ───────────────────────── 1.4.1 Quiz & Exercise ───────────────────────── */
 
-            <p>
-                Let <Latex>{'$X = \\{x_1, x_2, \\ldots, x_n\\}$'}</Latex> be a set of input vectors,
-                where each <Latex>{'$x_i \\in \\mathbb{R}^d$'}</Latex> represents a feature vector in
-                a <Latex>{'$d$'}</Latex>-dimensional space. The goal of the attention mechanism is to produce
-                a weighted combination of these input vectors, emphasizing those that are most relevant
-                to a particular context or query.
-            </p>
+const MAPPING_QUIZ: QuizQuestion[] = [
+    {
+        question: "What is the purpose of dividing by $\\sqrt{d_k}$ in scaled dot-product attention?",
+        options: [
+            "Normalize output to unit norm",
+            "Prevent dot products growing too large, keeping softmax well-calibrated",
+            "Ensure weights are integers",
+            "Speed up matrix multiplication",
+        ],
+        answer: 1,
+        explanation: "Without scaling, dot products in high dimensions have std ≈ √d_k, pushing softmax into saturation where gradients vanish.",
+    },
+    {
+        question: "Which property means attention has no built-in sense of order in the sequence?",
+        options: [
+            "Linearity in V",
+            "Permutation equivariance",
+            "Boundedness",
+            "Softmax normalization",
+        ],
+        answer: 1,
+        explanation: "Simultaneously permuting Q, K, V rows gives the same permuted output — attention treats the sequence as a set. Positional encodings must provide order information separately.",
+    },
+];
 
-            <p>
-                This process can be mathematically formulated as a function{' '}
-                <Latex>{'$A : \\mathbb{R}^{n \\times d} \\times \\mathbb{R}^{n \\times d} \\times \\mathbb{R}^{n \\times d} \\to \\mathbb{R}^{n \\times d}$'}</Latex>,
-                where the first argument <Latex>{'$Q$'}</Latex> represents the <strong>query matrix</strong> (composed
-                of <Latex>{'$n$'}</Latex> query vectors), the second argument <Latex>{'$K$'}</Latex> represents
-                the <strong>key matrix</strong>, and the third argument <Latex>{'$V$'}</Latex> represents
-                the <strong>value matrix</strong>.
-            </p>
+const MAPPING_EXERCISE = {
+    starter: `import numpy as np
 
-            <p>
-                The attention function <Latex>{'$A(Q, K, V)$'}</Latex> is defined by first computing
-                the <strong>attention scores</strong> as a similarity measure between the query and key vectors.
-                A common choice is the <strong>scaled dot product</strong>:
-            </p>
+def multi_head_attention(X, h, d_model, seed=0):
+    """
+    Implement multi-head attention.
+    X: (n, d_model) input
+    h: number of heads
+    d_model: model dimension
+    Returns output of shape (n, d_model)
+    Hint: split X into h heads, attend each, concatenate
+    """
+    # TODO: implement multi-head attention
+    pass
+`,
+    checks: `import numpy as np
 
-            <div className="bg-slate-50 p-4 rounded-lg my-4 border border-slate-200 text-center">
-                <Latex>{'$S_{ij} = \\frac{\\langle q_i, k_j \\rangle}{\\sqrt{d_k}}$'}</Latex>
-            </div>
+def softmax(x):
+    e = np.exp(x - x.max(axis=-1, keepdims=True))
+    return e / e.sum(axis=-1, keepdims=True)
 
-            <p>
-                where <Latex>{'$q_i$'}</Latex> and <Latex>{'$k_j$'}</Latex> are the <Latex>{'$i$'}</Latex>th
-                query vector and <Latex>{'$j$'}</Latex>th key vector respectively, <Latex>{'$d_k$'}</Latex> is
-                the dimensionality of the key vectors, and <Latex>{'$\\langle q_i, k_j \\rangle$'}</Latex> denotes
-                the dot product. The scaling factor <Latex>{'$\\frac{1}{\\sqrt{d_k}}$'}</Latex> is introduced
-                to mitigate the effect of increasing dimensionality, ensuring that the magnitude of the
-                dot products remains stable as <Latex>{'$d_k$'}</Latex> grows.
-            </p>
+def attn(Q, K, V):
+    return softmax(Q @ K.T / np.sqrt(Q.shape[-1])) @ V
 
-            <p>
-                The attention scores <Latex>{'$S_{ij}$'}</Latex> are then normalized using
-                the <strong>softmax function</strong> to produce the attention weights:
-            </p>
+np.random.seed(42)
+X = np.random.randn(4, 8)
+result = multi_head_attention(X, h=2, d_model=8)
+_check("returns correct shape", lambda: result is not None and result.shape == (4, 8))
+_check("output is finite", lambda: np.all(np.isfinite(result)))
+`,
+    solution: `import numpy as np
 
-            <div className="bg-indigo-50 p-4 rounded-lg my-4 border border-indigo-200 text-center">
-                <Latex>{'$\\alpha_{ij} = \\frac{\\exp(S_{ij})}{\\sum_{k=1}^{n} \\exp(S_{ik})}$'}</Latex>
-            </div>
+def softmax(x):
+    e = np.exp(x - x.max(axis=-1, keepdims=True))
+    return e / e.sum(axis=-1, keepdims=True)
 
-            <p>
-                These attention weights <Latex>{'$\\alpha_{ij}$'}</Latex> indicate the relative importance of
-                the <Latex>{'$j$'}</Latex>th input vector to the <Latex>{'$i$'}</Latex>th query vector. The
-                final output of the attention mechanism is computed as a <strong>weighted sum</strong> of the
-                value vectors:
-            </p>
+def attention(Q, K, V):
+    return softmax(Q @ K.T / np.sqrt(Q.shape[-1])) @ V
 
-            <div className="bg-slate-50 p-4 rounded-lg my-4 border border-slate-200 text-center">
-                <Latex>{'$z_i = \\sum_{j=1}^{n} \\alpha_{ij} v_j$'}</Latex>
-            </div>
+def multi_head_attention(X, h, d_model, seed=0):
+    n = X.shape[0]
+    d_h = d_model // h
+    np.random.seed(seed)
+    heads = []
+    for _ in range(h):
+        WQ = np.random.randn(d_model, d_h) * 0.3
+        WK = np.random.randn(d_model, d_h) * 0.3
+        WV = np.random.randn(d_model, d_h) * 0.3
+        heads.append(attention(X @ WQ, X @ WK, X @ WV))
+    WO = np.random.randn(d_model, d_model) * 0.3
+    return np.concatenate(heads, axis=-1) @ WO
+`,
+};
 
-            <p>
-                The complete attention mapping can be expressed compactly as:
-            </p>
+/* ───────────────────────── 1.4.2 Quiz & Exercise ───────────────────────── */
 
-            <div className="bg-amber-50 border-l-4 border-amber-400 p-5 my-6">
-                <p className="font-semibold text-amber-800 mb-2">Scaled Dot-Product Attention</p>
-                <div className="text-center">
-                    <Latex>{'$A(Q, K, V) = \\text{Softmax}\\!\\left(\\frac{QK^\\top}{\\sqrt{d_k}}\\right) V$'}</Latex>
-                </div>
-                <p className="text-xs text-amber-800 mt-3">
-                    This formulation highlights the role of attention as a mapping that transforms the
-                    input sequence <Latex>{'$X$'}</Latex> into a new sequence <Latex>{'$Z = \\{z_1, z_2, \\ldots, z_n\\}$'}</Latex> by
-                    focusing on the most relevant components of the input based on the learned similarity structure.
-                </p>
-            </div>
+const HIGHDIM_QUIZ: QuizQuestion[] = [
+    {
+        question: "For random unit vectors in $\\mathbb{R}^{512}$, what is the approximate standard deviation of their dot products?",
+        options: [
+            "1",
+            "$\\sqrt{512} \\approx 22.6$",
+            "$1/\\sqrt{512} \\approx 0.044$",
+            "512",
+        ],
+        answer: 2,
+        explanation: "For unit vectors x,y ∈ ℝ^d, Var[x·y]=1/d, so std = 1/√d = 1/√512 ≈ 0.044. This is why the scaling factor 1/√d_k is used.",
+    },
+    {
+        question: "The Johnson-Lindenstrauss lemma guarantees that $n$ points can be embedded into approximately $O(?)$ dimensions while preserving pairwise distances.",
+        options: ["$n$", "$\\log n$", "$\\sqrt{n}$", "$n^2$"],
+        answer: 1,
+        explanation: "The lemma gives a target dimension of O(log n / ε²) — logarithmic in n — allowing dramatic dimensionality reduction while preserving geometry.",
+    },
+];
+
+const HIGHDIM_EXERCISE = {
+    starter: `import numpy as np
+
+def johnson_lindenstrauss_check(n=100, d_in=500, d_out=20, seed=42):
+    """
+    Project n points from d_in dimensions to d_out dimensions via a random
+    Gaussian matrix (scaled by 1/sqrt(d_out)), then verify that pairwise
+    distances are approximately preserved.
+    Return the array of ratios: projected_dist / original_dist for all pairs.
+    """
+    # TODO: implement the projection and compute distance ratios
+    pass
+`,
+    checks: `import numpy as np
+ratios = johnson_lindenstrauss_check()
+_check("returns array of ratios", lambda: ratios is not None and len(ratios) > 0)
+_check("most ratios in [0.5, 2.0]", lambda: np.mean((ratios > 0.5) & (ratios < 2.0)) > 0.8)
+`,
+    solution: `import numpy as np
+
+def johnson_lindenstrauss_check(n=100, d_in=500, d_out=20, seed=42):
+    np.random.seed(seed)
+    X = np.random.randn(n, d_in)
+    R = np.random.randn(d_in, d_out) / np.sqrt(d_out)
+    X_proj = X @ R
+    ratios = []
+    for i in range(n):
+        for j in range(i+1, n):
+            d_orig = np.linalg.norm(X[i] - X[j])
+            d_proj = np.linalg.norm(X_proj[i] - X_proj[j])
+            if d_orig > 0:
+                ratios.append(d_proj / d_orig)
+    return np.array(ratios)
+
+ratios = johnson_lindenstrauss_check()
+print(f"Mean ratio: {ratios.mean():.3f}")
+print(f"Std ratio:  {ratios.std():.3f}")
+print(f"In [0.7, 1.3]: {np.mean((ratios > 0.7) & (ratios < 1.3))*100:.1f}%")
+`,
+};
+
+/* ───────────────────────── 1.4.3 Quiz & Exercise ───────────────────────── */
+
+const APPLICATIONS_QUIZ: QuizQuestion[] = [
+    {
+        question: "In multi-head attention with $h=8$ heads and $d_{\\text{model}}=512$, what is $d_k$ (dimension per head)?",
+        options: ["512", "64", "8", "4096"],
+        answer: 1,
+        explanation: "Each head gets d_k = d_model/h = 512/8 = 64 dimensions for its Q, K, V projections. Total parameter count stays at 4d² regardless of h.",
+    },
+    {
+        question: "Why do residual connections help with metric preservation across transformer layers?",
+        options: [
+            "They remove all attention computation",
+            "They bound geometry change per layer — output stays close to input",
+            "They double the model's expressivity",
+            "They normalize the attention weights",
+        ],
+        answer: 1,
+        explanation: "With x_out = x + Attention(x), the output representation can't stray far from the input — the geometry shifts by at most the magnitude of the attention term, preserving overall structure.",
+    },
+];
+
+const APPLICATIONS_EXERCISE = {
+    starter: `import numpy as np
+
+def measure_metric_distortion(X, h=4, seed=0):
+    """
+    Apply multi-head self-attention + residual connection to X.
+    Compute pairwise distance ratios (output_dist / input_dist) for all pairs.
+    Return (pairs, in_dists, out_dists) where pairs is a list of (i,j) tuples.
+    """
+    # TODO: implement self-attention + residual and compute distance ratios
+    pass
+`,
+    checks: `import numpy as np
+np.random.seed(42)
+X = np.random.randn(5, 16)
+result = measure_metric_distortion(X)
+_check("returns 3-tuple", lambda: result is not None and len(result) == 3)
+pairs, in_d, out_d = result
+_check("correct number of pairs", lambda: len(pairs) == 10)
+_check("distances are positive", lambda: all(d > 0 for d in in_d) and all(d > 0 for d in out_d))
+`,
+    solution: `import numpy as np
+
+def softmax(x):
+    e = np.exp(x - x.max(axis=-1, keepdims=True))
+    return e / e.sum(axis=-1, keepdims=True)
+
+def attention(Q, K, V):
+    return softmax(Q @ K.T / np.sqrt(Q.shape[-1])) @ V
+
+def multi_head_attention(X, h=4, seed=0):
+    n, d = X.shape
+    d_h = d // h
+    np.random.seed(seed)
+    heads = []
+    for _ in range(h):
+        WQ = np.random.randn(d, d_h) * 0.3
+        WK = np.random.randn(d, d_h) * 0.3
+        WV = np.random.randn(d, d_h) * 0.3
+        heads.append(attention(X@WQ, X@WK, X@WV))
+    return np.concatenate(heads, axis=-1)
+
+def measure_metric_distortion(X, h=4, seed=0):
+    out = multi_head_attention(X, h, seed)
+    x_out = X + out  # residual connection
+    pairs = [(i,j) for i in range(len(X)) for j in range(i+1,len(X))]
+    in_d  = [np.linalg.norm(X[i]-X[j]) for i,j in pairs]
+    out_d = [np.linalg.norm(x_out[i]-x_out[j]) for i,j in pairs]
+    return pairs, in_d, out_d
+
+np.random.seed(42)
+X = np.random.randn(5, 16)
+pairs, in_d, out_d = measure_metric_distortion(X)
+print("Pair   | Input dist | Output dist | Ratio")
+for (i,j), d_in, d_out in zip(pairs, in_d, out_d):
+    print(f"({i},{j})    | {d_in:.3f}      | {d_out:.3f}       | {d_out/d_in:.3f}")
+`,
+};
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   1.4.1 — Attention as a Mapping
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+export function AttentionAsMappingContent({ mappingLab }: { mappingLab?: React.ReactNode }) {
+    return (
+        <div className="space-y-10">
+            <Card title="1.4.1 · Attention as a Mapping">
+                <Tabs tabs={[
+                    {
+                        id: 'concept', label: 'Concept', icon: conceptIcon,
+                        content: (
+                            <ConceptStepper steps={[
+                                {
+                                    label: 'The QKV Formulation',
+                                    content: (
+                                        <div>
+                                            <Intuition>
+                                                Attention is a soft database lookup: the query asks a question, keys index entries, values hold the data. Softmax converts raw scores into a probability distribution.
+                                            </Intuition>
+                                            <Reading>
+                                                <p>
+                                                    The attention function takes three inputs: queries <Latex>{'$Q$'}</Latex>, keys <Latex>{'$K$'}</Latex>, and values <Latex>{'$V$'}</Latex>. The core formula is:
+                                                </p>
+                                                <div className="bg-[var(--surface-2)] p-4 rounded-lg my-4 text-center border border-[var(--border)]">
+                                                    <Latex>{'$$\\text{Attention}(Q, K, V) = \\text{softmax}\\!\\left(\\frac{QK^\\top}{\\sqrt{d_k}}\\right)V$$'}</Latex>
+                                                </div>
+                                                <p>
+                                                    Scaling by <Latex>{'$\\sqrt{d_k}$'}</Latex> prevents dot products from growing too large in high dimensions,
+                                                    keeping the softmax well-calibrated. The output is a weighted sum of values; weights are
+                                                    non-negative and sum to 1.
+                                                </p>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    label: 'Mathematical Properties',
+                                    content: (
+                                        <div>
+                                            <Intuition>
+                                                Linearity in values makes attention composable. Permutation equivariance means order only matters through positional encodings — the mechanism itself is order-agnostic.
+                                            </Intuition>
+                                            <Reading>
+                                                <p><strong>Linearity in V:</strong></p>
+                                                <div className="bg-[var(--surface-2)] p-4 rounded-lg my-3 text-center border border-[var(--border)]">
+                                                    <Latex>{'$$\\text{Attention}(Q, K, \\alpha V_1 + \\beta V_2) = \\alpha\\,\\text{Attention}(Q, K, V_1) + \\beta\\,\\text{Attention}(Q, K, V_2)$$'}</Latex>
+                                                </div>
+                                                <p><strong>Permutation equivariance:</strong> permuting <Latex>{'$Q, K, V$'}</Latex> rows simultaneously permutes the output.</p>
+                                                <p><strong>Probabilistic:</strong> weights <Latex>{'$\\alpha_{ij} \\geq 0$'}</Latex> and <Latex>{'$\\sum_j \\alpha_{ij} = 1$'}</Latex> for every query <Latex>{'$i$'}</Latex>.</p>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    label: 'Multi-Head Attention',
+                                    content: (
+                                        <div>
+                                            <Intuition>
+                                                Multiple heads are multiple lenses on the data — each captures different relationships: syntax, semantics, position. Concatenating them gives the full picture.
+                                            </Intuition>
+                                            <Reading>
+                                                <p>
+                                                    <Latex>{'$h$'}</Latex> parallel attention heads with separate projections, each operating in <Latex>{'$d_k = d_{\\text{model}}/h$'}</Latex> dimensions:
+                                                </p>
+                                                <div className="bg-[var(--surface-2)] p-4 rounded-lg my-3 text-center border border-[var(--border)]">
+                                                    <Latex>{'$$\\text{head}_i = \\text{Attention}(XW_i^Q,\\, XW_i^K,\\, XW_i^V)$$'}</Latex>
+                                                </div>
+                                                <div className="bg-[var(--surface-2)] p-4 rounded-lg my-3 text-center border border-[var(--border)]">
+                                                    <Latex>{'$$\\text{MultiHead}(X) = \\text{Concat}(\\text{head}_1, \\ldots, \\text{head}_h)W^O$$'}</Latex>
+                                                </div>
+                                                <p>
+                                                    Total parameter cost: <Latex>{'$4d_{\\text{model}}^2$'}</Latex> per layer, regardless of the number of heads.
+                                                </p>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                            ]} />
+                        ),
+                    },
+                    {
+                        id: 'visualize', label: 'Visualize', icon: visualizeIcon,
+                        content: mappingLab,
+                    },
+                    {
+                        id: 'code', label: 'Code', icon: codeIcon,
+                        content: (
+                            <CodeBlock
+                                title="attention.py"
+                                runnable
+                                language="python"
+                                code={`import numpy as np
+
+def scaled_dot_product_attention(Q, K, V):
+    d_k = Q.shape[-1]
+    scores = Q @ K.T / np.sqrt(d_k)
+    weights = np.exp(scores - scores.max(axis=-1, keepdims=True))
+    weights /= weights.sum(axis=-1, keepdims=True)
+    return weights @ V, weights
+
+np.random.seed(42)
+Q = np.random.randn(3, 4)  # 3 tokens, d_k=4
+K = np.random.randn(3, 4)
+V = np.random.randn(3, 4)
+
+output, weights = scaled_dot_product_attention(Q, K, V)
+print("Attention weights (rows sum to 1):")
+print(np.round(weights, 3))
+print("\\nRow sums:", np.round(weights.sum(axis=1), 4))
+
+# Verify linearity in V
+alpha, V2 = 0.6, np.random.randn(3, 4)
+out1, _ = scaled_dot_product_attention(Q, K, alpha*V + (1-alpha)*V2)
+out2, _ = scaled_dot_product_attention(Q, K, V)
+out3, _ = scaled_dot_product_attention(Q, K, V2)
+print("\\nLinearity error:", np.max(np.abs(out1 - (alpha*out2 + (1-alpha)*out3))))
+`}
+                            />
+                        ),
+                    },
+                    {
+                        id: 'exercise', label: 'Exercise', icon: exerciseIcon,
+                        content: (
+                            <CodingExercise
+                                bare
+                                title="Implement Multi-Head Attention"
+                                prompt={<>Split <Latex>{'$Q, K, V$'}</Latex> into <Latex>{'$h$'}</Latex> heads, apply scaled dot-product attention to each, then concatenate and project the outputs.</>}
+                                starterCode={MAPPING_EXERCISE.starter}
+                                checks={MAPPING_EXERCISE.checks}
+                                solution={MAPPING_EXERCISE.solution}
+                            />
+                        ),
+                    },
+                    {
+                        id: 'quiz', label: 'Quiz', icon: quizIcon,
+                        content: <Quiz bare questions={MAPPING_QUIZ} title="Check: Attention as a Mapping" />,
+                    },
+                ]} />
+            </Card>
         </div>
     );
 }
 
-// ── Section 2: Properties of Attention Mappings ──────────────────────────────
-export function AttentionProperties() {
+/* ═══════════════════════════════════════════════════════════════════════════
+   1.4.2 — High-Dimensional Geometry
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+export function HighDimGeometryContent({ dimensionalityLab }: { dimensionalityLab?: React.ReactNode }) {
     return (
-        <div className="prose prose-slate max-w-none">
-            <h2 className="text-2xl font-bold text-indigo-700 border-b-2 border-indigo-200 pb-2 mb-4">
-                Properties of Attention Mappings
-            </h2>
+        <div className="space-y-10">
+            <Card title="1.4.2 · High-Dimensional Geometry">
+                <Tabs tabs={[
+                    {
+                        id: 'concept', label: 'Concept', icon: conceptIcon,
+                        content: (
+                            <ConceptStepper steps={[
+                                {
+                                    label: 'The Curse of Dimensionality',
+                                    content: (
+                                        <div>
+                                            <Intuition>
+                                                In 2D a circle fills most of its bounding square. In 1000D a hypersphere is nearly empty relative to the hypercube — high dimensions are mostly &quot;corners&quot;, and data becomes exponentially sparse.
+                                            </Intuition>
+                                            <Reading>
+                                                <p>
+                                                    The volume of the unit <Latex>{'$d$'}</Latex>-ball:
+                                                </p>
+                                                <div className="bg-[var(--surface-2)] p-4 rounded-lg my-3 text-center border border-[var(--border)]">
+                                                    <Latex>{'$$V_d = \\frac{\\pi^{d/2}}{\\Gamma(d/2 + 1)} \\to 0 \\text{ as } d \\to \\infty$$'}</Latex>
+                                                </div>
+                                                <p>
+                                                    The ratio of sphere to cube volume falls exponentially. K-nearest neighbours breaks down: all pairwise distances concentrate. We need exponentially more data to fill space at the same density.
+                                                </p>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    label: 'Distance Concentration',
+                                    content: (
+                                        <div>
+                                            <Intuition>
+                                                Random vectors in high dimensions are nearly orthogonal — their dot products concentrate near zero with std <Latex>{'$1/\\sqrt{d}$'}</Latex>. This is why attention scales by <Latex>{'$\\sqrt{d_k}$'}</Latex>: to keep scores in a useful range.
+                                            </Intuition>
+                                            <Reading>
+                                                <p>
+                                                    For random unit vectors <Latex>{'$x, y \\in \\mathbb{R}^d$'}</Latex>:
+                                                </p>
+                                                <div className="bg-[var(--surface-2)] p-4 rounded-lg my-3 text-center border border-[var(--border)]">
+                                                    <Latex>{'$$\\mathbb{E}[x \\cdot y] = 0, \\quad \\text{Var}[x \\cdot y] = \\frac{1}{d}$$'}</Latex>
+                                                </div>
+                                                <p>
+                                                    Unscaled dot products <Latex>{'$\\sim \\mathcal{N}(0, \\sqrt{d_k})$'}</Latex> in dimension <Latex>{'$d_k$'}</Latex> — softmax saturates.
+                                                    Scaling by <Latex>{'$1/\\sqrt{d_k}$'}</Latex> normalises to std <Latex>{'$\\approx 1$'}</Latex>. All pairwise distances
+                                                    also concentrate: <Latex>{'$(d_{\\max} - d_{\\min}) / d_{\\text{avg}} \\to 0$'}</Latex> as <Latex>{'$d \\to \\infty$'}</Latex>.
+                                                </p>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    label: 'Concentration of Measure',
+                                    content: (
+                                        <div>
+                                            <Intuition>
+                                                Almost all of a high-dimensional sphere&apos;s surface is near its equator. Functions on high-dimensional distributions become predictable — a surprising gift for learning.
+                                            </Intuition>
+                                            <Reading>
+                                                <p>
+                                                    <strong>Lévy&apos;s lemma:</strong> for 1-Lipschitz <Latex>{'$f$'}</Latex> on <Latex>{'$S^{d-1}$'}</Latex>:
+                                                </p>
+                                                <div className="bg-[var(--surface-2)] p-4 rounded-lg my-3 text-center border border-[var(--border)]">
+                                                    <Latex>{'$$P\\!\\left(|f(x) - \\mathbb{E}f| > \\varepsilon\\right) \\leq 2\\exp\\!\\left(-\\frac{d\\varepsilon^2}{2}\\right)$$'}</Latex>
+                                                </div>
+                                                <p>
+                                                    <strong>Johnson-Lindenstrauss:</strong> <Latex>{'$n$'}</Latex> points embed into <Latex>{'$O(\\log n / \\varepsilon^2)$'}</Latex> dimensions,
+                                                    preserving distances within <Latex>{'$(1 \\pm \\varepsilon)$'}</Latex>. Consequence: random linear projections (like attention
+                                                    weight matrices) preserve geometric structure.
+                                                </p>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                            ]} />
+                        ),
+                    },
+                    {
+                        id: 'visualize', label: 'Visualize', icon: visualizeIcon,
+                        content: dimensionalityLab,
+                    },
+                    {
+                        id: 'code', label: 'Code', icon: codeIcon,
+                        content: (
+                            <CodeBlock
+                                title="high_dim.py"
+                                runnable
+                                language="python"
+                                code={`import numpy as np
 
-            <p>
-                The attention mapping{' '}
-                <Latex>{'$A : \\mathbb{R}^{n \\times d} \\times \\mathbb{R}^{n \\times d} \\times \\mathbb{R}^{n \\times d} \\to \\mathbb{R}^{n \\times d}$'}</Latex>{' '}
-                possesses several key properties that are essential for understanding its behavior
-                and effectiveness in capturing relationships within the data. These properties can be
-                analyzed in terms of geometry, symmetry, and stability.
-            </p>
+np.random.seed(42)
+print("Distance concentration in high dimensions:\\n")
+for d in [2, 10, 50, 200, 512]:
+    n = 500
+    X = np.random.randn(n, d)
+    X /= np.linalg.norm(X, axis=1, keepdims=True)
+    dots = X @ X.T
+    mask = ~np.eye(n, dtype=bool)
+    off = dots[mask]
+    print(f"d={d:4d}: mean={off.mean():.4f}  std={off.std():.4f}  "
+          f"(theory: 0.0000, {1/np.sqrt(d):.4f})")
 
-            {/* Property 1 */}
-            <div className="bg-slate-50 p-5 rounded-lg my-6 border border-slate-200">
-                <div className="flex items-start gap-3 mb-3">
-                    <span className="bg-indigo-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
-                    <h4 className="font-bold text-slate-800 m-0">Linearity in Value Vectors</h4>
-                </div>
-                <p className="text-sm text-slate-700 mb-3">
-                    The attention mechanism is linear with respect to the value vectors <Latex>{'$V$'}</Latex>.
-                    Given a linear combination of value matrices <Latex>{'$V_1$'}</Latex> and <Latex>{'$V_2$'}</Latex> with
-                    corresponding scalars <Latex>{'$\\alpha$'}</Latex> and <Latex>{'$\\beta$'}</Latex>:
-                </p>
-                <div className="text-center bg-white p-3 rounded border border-slate-100">
-                    <Latex>{'$A(Q, K, \\alpha V_1 + \\beta V_2) = \\alpha\\, A(Q, K, V_1) + \\beta\\, A(Q, K, V_2)$'}</Latex>
-                </div>
-                <p className="text-xs text-slate-500 mt-2">
-                    This linearity allows the attention mechanism to combine different sets of value vectors
-                    in a controlled manner, making it suitable for aggregating information from different sources.
-                </p>
-            </div>
-
-            {/* Property 2 */}
-            <div className="bg-slate-50 p-5 rounded-lg my-6 border border-slate-200">
-                <div className="flex items-start gap-3 mb-3">
-                    <span className="bg-indigo-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
-                    <h4 className="font-bold text-slate-800 m-0">Invariance Under Permutations</h4>
-                </div>
-                <p className="text-sm text-slate-700 mb-3">
-                    The attention mechanism is invariant under simultaneous permutations of the input
-                    sequence. For any permutation <Latex>{'$\\sigma$'}</Latex> of the
-                    indices <Latex>{'$\\{1, 2, \\ldots, n\\}$'}</Latex>:
-                </p>
-                <div className="text-center bg-white p-3 rounded border border-slate-100">
-                    <Latex>{'$A(Q_\\sigma, K_\\sigma, V_\\sigma) = A(Q, K, V)_\\sigma$'}</Latex>
-                </div>
-                <p className="text-xs text-slate-500 mt-2">
-                    This reflects that attention does not impose any fixed order on the input sequence,
-                    allowing it to capture dependencies regardless of position.
-                </p>
-            </div>
-
-            {/* Property 3 */}
-            <div className="bg-slate-50 p-5 rounded-lg my-6 border border-slate-200">
-                <div className="flex items-start gap-3 mb-3">
-                    <span className="bg-indigo-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
-                    <h4 className="font-bold text-slate-800 m-0">Commutativity of Attention Heads</h4>
-                </div>
-                <p className="text-sm text-slate-700 mb-3">
-                    In multi-head self-attention, the order in which attention heads are applied does
-                    not affect the final output:
-                </p>
-                <div className="text-center bg-white p-3 rounded border border-slate-100">
-                    <Latex>{'$(Z_{\\sigma(1)}, Z_{\\sigma(2)}, \\ldots, Z_{\\sigma(h)})W^O = (Z_1, Z_2, \\ldots, Z_h)W^O$'}</Latex>
-                </div>
-                <p className="text-xs text-slate-500 mt-2">
-                    This allows the model to process different attention heads in parallel,
-                    contributing to the efficiency and scalability of transformers.
-                </p>
-            </div>
-
-            {/* Property 4 */}
-            <div className="bg-slate-50 p-5 rounded-lg my-6 border border-slate-200">
-                <div className="flex items-start gap-3 mb-3">
-                    <span className="bg-indigo-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">4</span>
-                    <h4 className="font-bold text-slate-800 m-0">Boundedness and Stability</h4>
-                </div>
-                <p className="text-sm text-slate-700 mb-3">
-                    The attention mapping is bounded and stable under small perturbations.
-                    Let <Latex>{'$\\delta Q$'}</Latex>, <Latex>{'$\\delta K$'}</Latex>,
-                    and <Latex>{'$\\delta V$'}</Latex> be small perturbations:
-                </p>
-                <div className="text-center bg-white p-3 rounded border border-slate-100">
-                    <Latex>{'$\\|A(Q+\\delta Q, K+\\delta K, V+\\delta V) - A(Q,K,V)\\| \\leq C(\\|\\delta Q\\| + \\|\\delta K\\| + \\|\\delta V\\|)$'}</Latex>
-                </div>
-                <p className="text-xs text-slate-500 mt-2">
-                    This ensures the attention mechanism is robust to noise and variations in the data.
-                </p>
-            </div>
-
-            {/* Property 5 */}
-            <div className="bg-emerald-50 p-5 rounded-lg my-6 border border-emerald-200">
-                <div className="flex items-start gap-3 mb-3">
-                    <span className="bg-emerald-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">5</span>
-                    <h4 className="font-bold text-slate-800 m-0">Non-negativity and Probability Interpretation</h4>
-                </div>
-                <p className="text-sm text-slate-700 mb-3">
-                    The attention weights <Latex>{'$\\alpha_{ij}$'}</Latex> are non-negative and sum to 1
-                    for each query vector:
-                </p>
-                <div className="text-center bg-white p-3 rounded border border-emerald-100">
-                    <Latex>{'$\\alpha_{ij} \\geq 0 \\quad \\text{and} \\quad \\sum_{j=1}^{n} \\alpha_{ij} = 1$'}</Latex>
-                </div>
-                <p className="text-xs text-slate-500 mt-2">
-                    This gives the attention mechanism a <strong>probabilistic interpretation</strong>, where the
-                    weights <Latex>{'$\\alpha_{ij}$'}</Latex> represent the probability of selecting
-                    the <Latex>{'$j$'}</Latex>th value vector for constructing the output.
-                    This probabilistic nature is crucial for tasks requiring soft selection of relevant
-                    information, such as language modeling and translation.
-                </p>
-            </div>
+print("\\nConclusion: std ~ 1/sqrt(d). Scaling by 1/sqrt(d_k) keeps attention calibrated.")
+`}
+                            />
+                        ),
+                    },
+                    {
+                        id: 'exercise', label: 'Exercise', icon: exerciseIcon,
+                        content: (
+                            <CodingExercise
+                                bare
+                                title="Johnson-Lindenstrauss Check"
+                                prompt={<>Project 100 points from 500D to 20D via a random Gaussian matrix, then verify that pairwise distances are approximately preserved (ratios in <Latex>{'$[0.7, 1.3]$'}</Latex>).</>}
+                                starterCode={HIGHDIM_EXERCISE.starter}
+                                checks={HIGHDIM_EXERCISE.checks}
+                                solution={HIGHDIM_EXERCISE.solution}
+                            />
+                        ),
+                    },
+                    {
+                        id: 'quiz', label: 'Quiz', icon: quizIcon,
+                        content: <Quiz bare questions={HIGHDIM_QUIZ} title="Check: High-Dimensional Geometry" />,
+                    },
+                ]} />
+            </Card>
         </div>
     );
 }
 
-// ── Section 3: Curse of Dimensionality ───────────────────────────────────────
-export function CurseOfDimensionality() {
+/* ═══════════════════════════════════════════════════════════════════════════
+   1.4.3 — Applications in Transformer Architectures
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+export function ApplicationsContent({ preservationLab }: { preservationLab?: React.ReactNode }) {
     return (
-        <div className="prose prose-slate max-w-none">
-            <h2 className="text-2xl font-bold text-rose-700 border-b-2 border-rose-200 pb-2 mb-4">
-                The Geometry of High-Dimensional Spaces
-            </h2>
+        <div className="space-y-10">
+            <Card title="1.4.3 · Applications in Transformer Architectures">
+                <Tabs tabs={[
+                    {
+                        id: 'concept', label: 'Concept', icon: conceptIcon,
+                        content: (
+                            <ConceptStepper steps={[
+                                {
+                                    label: 'Expressivity of Self-Attention',
+                                    content: (
+                                        <div>
+                                            <Intuition>
+                                                Self-attention is a Turing-complete operation — with enough heads and layers, transformers can simulate any algorithm. Each head specialises in a different aspect of the data.
+                                            </Intuition>
+                                            <Reading>
+                                                <p>
+                                                    In self-attention, <Latex>{'$Q = K = V = XW^E$'}</Latex> (same sequence projected). Multi-head attention captures syntax (head 1), semantics (head 2), co-reference (head 3), and more.
+                                                    Universal approximation for sequences — expressivity grows with <Latex>{'$h$'}</Latex> (heads) and <Latex>{'$L$'}</Latex> (layers).
+                                                </p>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    label: 'Attention as Metric-Preserving Map',
+                                    content: (
+                                        <div>
+                                            <Intuition>
+                                                If two tokens are semantically similar going in, they should come out similar. Attention approximately preserves this geometry — with selective distortion that emphasises task-relevant dimensions.
+                                            </Intuition>
+                                            <Reading>
+                                                <p>Output distance bound:</p>
+                                                <div className="bg-[var(--surface-2)] p-4 rounded-lg my-3 text-center border border-[var(--border)]">
+                                                    <Latex>{'$$\\|\\text{Attention}(x_i) - \\text{Attention}(x_j)\\| \\leq C\\,\\|x_i - x_j\\| + \\|\\alpha_i - \\alpha_j\\|_1 M_V$$'}</Latex>
+                                                </div>
+                                                <p>
+                                                    When attention patterns match: isometric-like. When patterns differ: selective contraction.
+                                                    Similar tokens get pulled together; distinct tokens maintain separation.
+                                                </p>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    label: 'Layer Stacking and Residual Connections',
+                                    content: (
+                                        <div>
+                                            <Intuition>
+                                                Skip connections limit geometry distortion per layer. Early layers encode local syntax; later layers encode global semantics. The residual path ensures distances cannot explode.
+                                            </Intuition>
+                                            <Reading>
+                                                <p>
+                                                    Residual: <Latex>{'$x_{\\text{out}} = x + \\text{Attention}(x)$'}</Latex> — geometry shifts by at most the attention contribution.
+                                                    LayerNorm keeps norms bounded. <Latex>{'$L$'}</Latex> layers give <Latex>{'$L$'}</Latex> chances to refine metric structure.
+                                                </p>
+                                                <p>
+                                                    BERT analysis: lower layers encode syntax, higher layers encode semantics.
+                                                </p>
+                                            </Reading>
+                                        </div>
+                                    ),
+                                },
+                            ]} />
+                        ),
+                    },
+                    {
+                        id: 'visualize', label: 'Visualize', icon: visualizeIcon,
+                        content: preservationLab,
+                    },
+                    {
+                        id: 'code', label: 'Code', icon: codeIcon,
+                        content: (
+                            <CodeBlock
+                                title="expressivity.py"
+                                runnable
+                                language="python"
+                                code={`import numpy as np
 
-            <p>
-                As attention mechanisms and transformers often operate in high-dimensional spaces,
-                understanding the geometric properties of these spaces is crucial for analyzing how
-                these models function and why they are effective. The study of high-dimensional
-                spaces introduces unique challenges and opportunities, particularly concerning the
-                phenomena known as the <strong>curse of dimensionality</strong> and the <strong>concentration of measure</strong>.
-            </p>
+def softmax(x):
+    e = np.exp(x - x.max(axis=-1, keepdims=True))
+    return e / e.sum(axis=-1, keepdims=True)
 
-            <h3 className="text-xl font-bold text-rose-700 border-b border-rose-200 pb-1 mt-8 mb-4">
-                Curse of Dimensionality
-            </h3>
+def attention(Q, K, V):
+    return softmax(Q @ K.T / np.sqrt(Q.shape[-1])) @ V
 
-            <p>
-                The curse of dimensionality refers to various phenomena that arise when working in
-                high-dimensional spaces that make intuitive concepts from low-dimensional spaces fail
-                to generalize. Consider the unit hypercube in <Latex>{'$\\mathbb{R}^d$'}</Latex>, defined as:
-            </p>
+def multi_head_attention(X, h=4, seed=0):
+    n, d = X.shape
+    d_h = d // h
+    np.random.seed(seed)
+    heads = []
+    for _ in range(h):
+        WQ = np.random.randn(d, d_h) * 0.3
+        WK = np.random.randn(d, d_h) * 0.3
+        WV = np.random.randn(d, d_h) * 0.3
+        heads.append(attention(X@WQ, X@WK, X@WV))
+    return np.concatenate(heads, axis=-1)
 
-            <div className="bg-slate-50 p-4 rounded-lg my-4 border border-slate-200 text-center">
-                <Latex>{'$C = \\{x \\in \\mathbb{R}^d \\mid 0 \\leq x_i \\leq 1,\\; i = 1, 2, \\ldots, d\\}$'}</Latex>
-            </div>
+np.random.seed(42)
+X = np.random.randn(5, 16)  # 5 tokens, 16-dim
 
-            <p>
-                The volume of this hypercube is always <Latex>{'$1^d = 1$'}</Latex>. However, consider a
-                hypersphere inscribed within it with radius <Latex>{'$r = \\frac{1}{2}$'}</Latex>.
-                The volume of this hypersphere is:
-            </p>
+# Apply self-attention + residual
+out = multi_head_attention(X, h=4)
+x_out = X + out  # residual connection
 
-            <div className="bg-rose-50 p-4 rounded-lg my-4 border border-rose-200 text-center">
-                <Latex>{'$V_d(S) = \\frac{\\pi^{d/2}}{\\Gamma\\!\\left(\\frac{d}{2} + 1\\right)} \\left(\\frac{1}{2}\\right)^{\\!d}$'}</Latex>
-            </div>
+pairs = [(i,j) for i in range(5) for j in range(i+1,5)]
+in_d  = [np.linalg.norm(X[i]-X[j]) for i,j in pairs]
+out_d = [np.linalg.norm(x_out[i]-x_out[j]) for i,j in pairs]
 
-            <p>
-                where <Latex>{'$\\Gamma$'}</Latex> is the Gamma function. As <Latex>{'$d$'}</Latex> increases,
-                the volume of the hypersphere decreases <strong>exponentially</strong> compared to
-                the hypercube. This implies that in high-dimensional spaces, most of the volume of the
-                hypercube is concentrated near its <em>corners</em>, not uniformly distributed throughout.
-            </p>
-
-            {/* Implications */}
-            <div className="bg-slate-50 p-5 rounded-lg my-6 border border-slate-200">
-                <div className="flex items-start gap-3 mb-3">
-                    <span className="bg-rose-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
-                    <h4 className="font-bold text-slate-800 m-0">Sparse Data</h4>
-                </div>
-                <p className="text-sm text-slate-700">
-                    In high-dimensional spaces, data points tend to be sparsely distributed, making it
-                    difficult to find close neighbors or meaningful clusters. Algorithms like k-nearest
-                    neighbors or clustering may perform poorly without appropriate dimensionality reduction.
-                </p>
-            </div>
-
-            <div className="bg-slate-50 p-5 rounded-lg my-6 border border-slate-200">
-                <div className="flex items-start gap-3 mb-3">
-                    <span className="bg-rose-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
-                    <h4 className="font-bold text-slate-800 m-0">Distance Concentration</h4>
-                </div>
-                <p className="text-sm text-slate-700 mb-3">
-                    The relative distances between points become less informative. The ratio of the
-                    distance between random points to the mean distance approaches 1:
-                </p>
-                <div className="text-center bg-white p-3 rounded border border-slate-100">
-                    <Latex>{'$\\lim_{d \\to \\infty} \\frac{\\|x_1 - x_2\\|}{E[\\|x_1 - x_2\\|]} = 1$'}</Latex>
-                </div>
-                <p className="text-xs text-slate-500 mt-2">
-                    This makes it challenging to distinguish between points based on distance alone,
-                    requiring alternative measures or embeddings.
-                </p>
-            </div>
-
-            <div className="bg-slate-50 p-5 rounded-lg my-6 border border-slate-200">
-                <div className="flex items-start gap-3 mb-3">
-                    <span className="bg-rose-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
-                    <h4 className="font-bold text-slate-800 m-0">Dimensionality Reduction</h4>
-                </div>
-                <p className="text-sm text-slate-700">
-                    Techniques like <strong>Principal Component Analysis (PCA)</strong> and <strong>t-Distributed
-                        Stochastic Neighbor Embedding (t-SNE)</strong> project high-dimensional data onto
-                    lower-dimensional subspaces where the data&apos;s essential structure is preserved.
-                </p>
-            </div>
-
-            <div className="bg-rose-50 border-l-4 border-rose-400 p-5 my-6">
-                <p className="font-semibold text-rose-800 mb-2">Relevance to Transformers</p>
-                <p className="text-sm text-rose-800">
-                    The self-attention mechanism inherently mitigates some challenges of the curse of
-                    dimensionality by focusing on specific subsets of the input data, thereby reducing
-                    the effective dimensionality that the model needs to process.
-                </p>
-            </div>
+print("Pair   | Input dist | Output dist | Ratio")
+for (i,j), d_in, d_out in zip(pairs, in_d, out_d):
+    print(f"({i},{j})    | {d_in:.3f}      | {d_out:.3f}       | {d_out/d_in:.3f}")
+`}
+                            />
+                        ),
+                    },
+                    {
+                        id: 'exercise', label: 'Exercise', icon: exerciseIcon,
+                        content: (
+                            <CodingExercise
+                                bare
+                                title="Measure Attention's Metric Distortion"
+                                prompt={<>Compute pairwise distance ratios before and after self-attention (with residual connection). Identify which pairs were most distorted and why.</>}
+                                starterCode={APPLICATIONS_EXERCISE.starter}
+                                checks={APPLICATIONS_EXERCISE.checks}
+                                solution={APPLICATIONS_EXERCISE.solution}
+                            />
+                        ),
+                    },
+                    {
+                        id: 'quiz', label: 'Quiz', icon: quizIcon,
+                        content: <Quiz bare questions={APPLICATIONS_QUIZ} title="Check: Applications in Transformers" />,
+                    },
+                ]} />
+            </Card>
         </div>
     );
 }
 
-// ── Section 4: Concentration of Measure ──────────────────────────────────────
-export function ConcentrationOfMeasure() {
-    return (
-        <div className="prose prose-slate max-w-none">
-            <h2 className="text-2xl font-bold text-rose-700 border-b-2 border-rose-200 pb-2 mb-4">
-                Concentration of Measure
-            </h2>
+/* ═══════════════════════════════════════════════════════════════════════════
+   Backward-compatibility stubs
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-            <p>
-                The concentration of measure phenomenon is another critical aspect of high-dimensional
-                geometry. It refers to the fact that in high-dimensional spaces, most of the mass of a
-                probability distribution tends to concentrate in a small region near the mean or median.
-                This effect is closely related to isoperimetric inequalities, which describe how the
-                &ldquo;surface area&rdquo; of a set relates to its &ldquo;volume&rdquo; in high dimensions.
-            </p>
-
-            <p>
-                Consider a high-dimensional sphere <Latex>{'$S^{d-1}$'}</Latex> in <Latex>{'$\\mathbb{R}^d$'}</Latex> with
-                radius <Latex>{'$r$'}</Latex>. As the dimension <Latex>{'$d$'}</Latex> increases, the volume of the
-                sphere&apos;s equatorial region becomes overwhelmingly large compared to the volume near
-                the poles. For a Lipschitz function <Latex>{'$f : S^{d-1} \\to \\mathbb{R}$'}</Latex>, the
-                concentration of measure theorem states that for any <Latex>{'$\\epsilon > 0$'}</Latex>:
-            </p>
-
-            <div className="bg-rose-50 p-4 rounded-lg my-4 border border-rose-200 text-center">
-                <Latex>{'$P\\!\\left(|f(x) - E[f]| \\geq \\epsilon\\right) \\leq 2\\exp\\!\\left(-C\\epsilon^2 d\\right)$'}</Latex>
-            </div>
-
-            <p>
-                where <Latex>{'$C$'}</Latex> is a constant depending on the Lipschitz constant
-                of <Latex>{'$f$'}</Latex>. As dimensionality <Latex>{'$d$'}</Latex> increases, the probability that a
-                function deviates significantly from its expected value decreases <strong>exponentially</strong>.
-            </p>
-
-            {/* Implications */}
-            <div className="bg-slate-50 p-5 rounded-lg my-6 border border-slate-200">
-                <div className="flex items-start gap-3 mb-3">
-                    <span className="bg-rose-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
-                    <h4 className="font-bold text-slate-800 m-0">Robustness of Features</h4>
-                </div>
-                <p className="text-sm text-slate-700">
-                    In high-dimensional spaces, most points are close to the &ldquo;average&rdquo; behavior of a
-                    function, meaning deviations are rare. Models trained on high-dimensional data
-                    may exhibit robust performance even under slight perturbations of the input.
-                </p>
-            </div>
-
-            <div className="bg-slate-50 p-5 rounded-lg my-6 border border-slate-200">
-                <div className="flex items-start gap-3 mb-3">
-                    <span className="bg-rose-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
-                    <h4 className="font-bold text-slate-800 m-0">Random Projections &amp; Johnson–Lindenstrauss Lemma</h4>
-                </div>
-                <p className="text-sm text-slate-700 mb-3">
-                    The concentration of measure justifies random projections for dimensionality reduction.
-                    The <strong>Johnson–Lindenstrauss lemma</strong> states that for any set
-                    of <Latex>{'$n$'}</Latex> points in <Latex>{'$\\mathbb{R}^d$'}</Latex> and
-                    any <Latex>{'$0 < \\epsilon < 1$'}</Latex>, there exists a linear
-                    map <Latex>{'$f: \\mathbb{R}^d \\to \\mathbb{R}^k$'}</Latex> with <Latex>{'$k = O\\!\\left(\\frac{\\log n}{\\epsilon^2}\\right)$'}</Latex> such that:
-                </p>
-                <div className="text-center bg-white p-3 rounded border border-slate-100">
-                    <Latex>{'$(1-\\epsilon)\\|x_i - x_j\\|^2 \\leq \\|f(x_i) - f(x_j)\\|^2 \\leq (1+\\epsilon)\\|x_i - x_j\\|^2$'}</Latex>
-                </div>
-                <p className="text-xs text-slate-500 mt-2">
-                    This result is crucial for reducing dimensionality while preserving the essential
-                    geometric properties of the data.
-                </p>
-            </div>
-
-            <div className="bg-emerald-50 p-5 rounded-lg my-6 border border-emerald-200">
-                <div className="flex items-start gap-3 mb-3">
-                    <span className="bg-emerald-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
-                    <h4 className="font-bold text-slate-800 m-0">Implications for Model Design</h4>
-                </div>
-                <p className="text-sm text-slate-700">
-                    In transformer design, concentration of measure suggests that high-dimensional
-                    feature spaces can be effectively managed by focusing on the most significant
-                    components of the data. Attention mechanisms naturally leverage this principle by
-                    assigning higher weights to the most relevant parts of the input, thereby concentrating
-                    the &ldquo;measure&rdquo; of attention on critical features.
-                </p>
-            </div>
-        </div>
-    );
-}
-
-// ── Section 5: Implications for Model Expressivity ───────────────────────────
-export function ModelExpressivity() {
-    return (
-        <div className="prose prose-slate max-w-none">
-            <h2 className="text-2xl font-bold text-emerald-700 border-b-2 border-emerald-200 pb-2 mb-4">
-                Applications in Transformer Architectures
-            </h2>
-
-            <p>
-                The mathematical properties of attention mechanisms, viewed through the lens of
-                geometry, symmetry, and metric spaces, offer profound insights into the expressivity
-                and robustness of transformer models. By understanding attention as a mapping within
-                a high-dimensional space, we can explore its implications for <strong>model expressivity</strong> and
-                its role as a <strong>metric-preserving map</strong>.
-            </p>
-
-            <h3 className="text-xl font-bold text-emerald-700 border-b border-emerald-200 pb-1 mt-8 mb-4">
-                Implications for Model Expressivity
-            </h3>
-
-            <p>
-                Expressivity refers to the model&apos;s ability to capture and represent a wide range
-                of functions within the input data. The self-attention mechanism can be viewed as an
-                operator <Latex>{'$A : \\mathcal{H} \\to \\mathcal{H}$'}</Latex> on a Hilbert
-                space <Latex>{'$\\mathcal{H}$'}</Latex> of functions defined on the input
-                space <Latex>{'$X$'}</Latex>. For any function <Latex>{'$f \\in \\mathcal{H}$'}</Latex>, the
-                operator produces a new function <Latex>{'$g = A(f)$'}</Latex>:
-            </p>
-
-            <div className="bg-emerald-50 p-4 rounded-lg my-4 border border-emerald-200 text-center">
-                <Latex>{'$g(x_i) = \\sum_{j=1}^{n} \\alpha_{ij}\\, f(x_j)$'}</Latex>
-            </div>
-
-            <p>
-                where the attention weights are computed as:
-            </p>
-
-            <div className="bg-slate-50 p-4 rounded-lg my-4 border border-slate-200 text-center">
-                <Latex>{'$\\alpha_{ij} = \\frac{\\exp\\!\\left(\\langle q_i, k_j \\rangle / \\sqrt{d_k}\\right)}{\\sum_{k=1}^{n} \\exp\\!\\left(\\langle q_i, k_k \\rangle / \\sqrt{d_k}\\right)}$'}</Latex>
-            </div>
-
-            {/* Factor 1 */}
-            <div className="bg-slate-50 p-5 rounded-lg my-6 border border-slate-200">
-                <div className="flex items-start gap-3 mb-3">
-                    <span className="bg-emerald-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
-                    <h4 className="font-bold text-slate-800 m-0">Diversity of Attention Heads</h4>
-                </div>
-                <p className="text-sm text-slate-700 mb-3">
-                    In multi-head attention, multiple operators <Latex>{'$A_1, A_2, \\ldots, A_h$'}</Latex> are
-                    applied in parallel with different parameterizations. The combined output is:
-                </p>
-                <div className="text-center bg-white p-3 rounded border border-slate-100">
-                    <Latex>{'$g(x_i) = \\left(A_1(f)(x_i),\\, A_2(f)(x_i),\\, \\ldots,\\, A_h(f)(x_i)\\right) W^O$'}</Latex>
-                </div>
-                <p className="text-xs text-slate-500 mt-2">
-                    where <Latex>{'$W^O$'}</Latex> is a learned weight matrix. Multiple heads effectively
-                    increase the dimensionality of the function space <Latex>{'$\\mathcal{H}$'}</Latex> the model can represent.
-                </p>
-            </div>
-
-            {/* Factor 2 */}
-            <div className="bg-slate-50 p-5 rounded-lg my-6 border border-slate-200">
-                <div className="flex items-start gap-3 mb-3">
-                    <span className="bg-emerald-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
-                    <h4 className="font-bold text-slate-800 m-0">Non-linearity and Depth</h4>
-                </div>
-                <p className="text-sm text-slate-700">
-                    Non-linear activation functions (ReLU) and stacking multiple self-attention layers further
-                    enhances expressivity. According to the <strong>universal approximation theorem</strong>,
-                    this combination can approximate any continuous function on a compact domain to
-                    arbitrary accuracy, provided the network is sufficiently deep and wide.
-                </p>
-            </div>
-
-            {/* Factor 3 */}
-            <div className="bg-slate-50 p-5 rounded-lg my-6 border border-slate-200">
-                <div className="flex items-start gap-3 mb-3">
-                    <span className="bg-emerald-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
-                    <h4 className="font-bold text-slate-800 m-0">Attention Weight Diversity</h4>
-                </div>
-                <p className="text-sm text-slate-700">
-                    The diversity of attention weights <Latex>{'$\\alpha_{ij}$'}</Latex> across different
-                    queries allows the model to focus on different parts of the input sequence for different
-                    contexts. This adaptability is crucial for capturing long-range dependencies essential
-                    for translation, summarization, and question answering.
-                </p>
-            </div>
-
-            <div className="bg-emerald-50 border-l-4 border-emerald-400 p-5 my-6">
-                <p className="font-semibold text-emerald-800 mb-2">Key Insight</p>
-                <p className="text-sm text-emerald-800">
-                    Transformers, through their attention mechanisms, possess a high degree of expressivity
-                    that allows them to model complex relationships within data that would be challenging
-                    for models lacking such flexible and adaptive attention mechanisms.
-                </p>
-            </div>
-        </div>
-    );
-}
-
-// ── Section 6: Attention as a Metric-Preserving Map ──────────────────────────
-export function AttentionMetricPreserving() {
-    return (
-        <div className="prose prose-slate max-w-none">
-            <h2 className="text-2xl font-bold text-emerald-700 border-b-2 border-emerald-200 pb-2 mb-4">
-                Attention as a Metric-Preserving Map
-            </h2>
-
-            <p>
-                In a metric space <Latex>{'$(X, d)$'}</Latex>, a
-                map <Latex>{'$\\varphi : X \\to Y$'}</Latex> is said to <strong>preserve the metric</strong> if
-                it approximately maintains distances between points:
-            </p>
-
-            <div className="bg-emerald-50 p-4 rounded-lg my-4 border border-emerald-200 text-center">
-                <Latex>{'$d_Y\\!\\left(\\varphi(x_1),\\, \\varphi(x_2)\\right) \\approx d_X(x_1, x_2)$'}</Latex>
-            </div>
-
-            <p>
-                In the context of transformers, we analyze the attention mechanism as a mapping from
-                the space of input embeddings <Latex>{'$\\mathbb{R}^{n \\times d}$'}</Latex> to an output
-                space <Latex>{'$\\mathbb{R}^{n \\times d}$'}</Latex>. The output vectors after applying
-                attention are:
-            </p>
-
-            <div className="bg-slate-50 p-4 rounded-lg my-4 border border-slate-200 text-center">
-                <Latex>{'$z_i = \\sum_{j=1}^{n} \\alpha_{ij}\\, v_j \\quad \\text{for } i = 1, 2$'}</Latex>
-            </div>
-
-            <p>
-                The distance between output vectors can be analyzed using the Euclidean norm:
-            </p>
-
-            <div className="bg-amber-50 border-l-4 border-amber-400 p-5 my-6">
-                <p className="font-semibold text-amber-800 mb-2">Output Distance</p>
-                <div className="text-center">
-                    <Latex>{'$\\|z_1 - z_2\\|_2 = \\left\\|\\sum_{j=1}^{n} (\\alpha_{1j} - \\alpha_{2j})\\, v_j \\right\\|_2$'}</Latex>
-                </div>
-                <p className="text-xs text-amber-800 mt-3">
-                    If the attention weights <Latex>{'$\\alpha_{ij}$'}</Latex> do not vary significantly
-                    between <Latex>{'$x_1$'}</Latex> and <Latex>{'$x_2$'}</Latex>, then the output
-                    distance <Latex>{'$\\|z_1 - z_2\\|_2$'}</Latex> will be close to the input
-                    distance <Latex>{'$\\|x_1 - x_2\\|_2$'}</Latex>, implying approximate metric preservation.
-                </p>
-            </div>
-
-            <div className="bg-slate-50 p-5 rounded-lg my-6 border border-slate-200">
-                <div className="flex items-start gap-3 mb-3">
-                    <span className="bg-emerald-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">●</span>
-                    <h4 className="font-bold text-slate-800 m-0">Structural Integrity</h4>
-                </div>
-                <p className="text-sm text-slate-700">
-                    When attention operates as a metric-preserving map, the transformed data retains
-                    its structural integrity. This preservation is critical for language modeling, where
-                    maintaining semantic relationships between words is essential.
-                </p>
-            </div>
-
-            <div className="bg-slate-50 p-5 rounded-lg my-6 border border-slate-200">
-                <div className="flex items-start gap-3 mb-3">
-                    <span className="bg-emerald-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">●</span>
-                    <h4 className="font-bold text-slate-800 m-0">Adaptive Metric Preservation</h4>
-                </div>
-                <p className="text-sm text-slate-700">
-                    In cases where non-linearity is significant, exact metric preservation may not hold.
-                    However, the mechanism captures meaningful relationships through <strong>selective
-                        focus</strong> — dynamically adjusting the metric to emphasize the most informative features.
-                    This can be understood as <em>adaptive metric preservation</em>, where the attention
-                    mechanism concentrates on the dimensions that matter most for the task at hand.
-                </p>
-            </div>
-
-            <div className="bg-emerald-50 border-l-4 border-emerald-400 p-5 my-6">
-                <p className="font-semibold text-emerald-800 mb-2">Significance</p>
-                <p className="text-sm text-emerald-800">
-                    The metric-preserving property is particularly important in high-dimensional spaces,
-                    where relationships between data points can be complex and sensitive to perturbations.
-                    By approximately preserving distances, the attention mechanism ensures that the
-                    geometric structure of the input is leveraged effectively by downstream layers.
-                </p>
-            </div>
-        </div>
-    );
-}
+export function AttentionAsMapping() { return null; }
+export function AttentionProperties() { return null; }
+export function CurseOfDimensionality() { return null; }
+export function ConcentrationOfMeasure() { return null; }
+export function ModelExpressivity() { return null; }
+export function AttentionMetricPreserving() { return null; }
+export default function AttentionFoundationsContent() { return null; }

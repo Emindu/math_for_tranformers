@@ -1,11 +1,11 @@
 "use client";
 
 import React from 'react';
-import { ChevronLeft } from 'lucide-react';
-import Link from 'next/link';
-import { MappingsBetweenMetricSpaces } from '@/components/content/MetricSpacesContent';
-import ContractionLab from '@/components/math-viz/ContractionLab';
+import LessonLayout from '@/components/shell/LessonLayout';
 import AudioExplainer, { AudioSection } from '@/components/ui/AudioExplainer';
+import { MappingsContent } from '@/components/content/MetricSpacesContent';
+import ContractionLab from '@/components/math-viz/ContractionLab';
+import MetricPreservationLab from '@/components/math-viz/MetricPreservationLab';
 
 const AUDIO_SECTIONS: AudioSection[] = [
     {
@@ -36,44 +36,14 @@ const AUDIO_SECTIONS: AudioSection[] = [
 
 export default function MappingsPage() {
     return (
-        <main className="min-h-screen bg-slate-50 py-12 px-4">
-            <div className="max-w-7xl mx-auto">
-                {/* Header */}
-                <div className="mb-8">
-                    <Link href="/chapter-1/metric-spaces" className="inline-flex items-center text-slate-500 hover:text-indigo-600 mb-4 transition-colors">
-                        <ChevronLeft size={16} /> Back to Metric Spaces
-                    </Link>
-                    <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">The Geometry of Intelligence</h1>
-                    <p className="text-xl text-slate-500 mt-2">Chapter 1.3.3: Mappings Between Metric Spaces</p>
-                </div>
-
-                {/* Audio Explainer */}
-                <div className="mb-12 max-w-3xl">
-                    <AudioExplainer sections={AUDIO_SECTIONS} accentColor="violet" />
-                </div>
-
-                <div className="flex flex-col gap-24">
-                    {/* Section: Mappings Between Metric Spaces */}
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
-                        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
-                            <MappingsBetweenMetricSpaces />
-                        </div>
-                        <div className="flex flex-col gap-8">
-                            <div className="sticky top-8">
-                                <ContractionLab />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Navigation */}
-                <div className="mt-16 flex justify-start">
-                    <Link href="/chapter-1/metric-spaces/topology"
-                        className="inline-flex items-center gap-2 text-slate-600 hover:text-indigo-600 font-semibold transition-colors">
-                        ← Previous: Topology
-                    </Link>
-                </div>
+        <LessonLayout width="wide">
+            <div className="mb-10">
+                <AudioExplainer sections={AUDIO_SECTIONS} accentColor="violet" />
             </div>
-        </main>
+            <MappingsContent
+                contractionLab={<ContractionLab />}
+                preservationLab={<MetricPreservationLab />}
+            />
+        </LessonLayout>
     );
 }

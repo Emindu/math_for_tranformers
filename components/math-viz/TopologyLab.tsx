@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useMemo } from 'react';
 
 // ── SVG constants ───────────────────────────────────────────────────────────
 const W = 420;
@@ -123,7 +122,7 @@ function OpenClosedTab() {
 
                     {/* ε-ball around hovered interior point */}
                     {hoverPt && hoverInside && hoverEps > 0 && (
-                        <motion.circle
+                        <circle
                             cx={toSVG(hoverPt.x)}
                             cy={toSVG(-hoverPt.y)}
                             r={hoverEps * SCALE}
@@ -132,9 +131,6 @@ function OpenClosedTab() {
                             stroke="#f59e0b"
                             strokeWidth={1.5}
                             strokeDasharray="4,3"
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ duration: 0.2 }}
                         />
                     )}
 
@@ -357,17 +353,9 @@ export default function TopologyLab() {
                 </button>
             </div>
 
-            <AnimatePresence mode="wait">
-                <motion.div
-                    key={tab}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.2 }}
-                >
-                    {tab === "open_closed" ? <OpenClosedTab /> : <ContinuityTab />}
-                </motion.div>
-            </AnimatePresence>
+            <div key={tab}>
+                {tab === "open_closed" ? <OpenClosedTab /> : <ContinuityTab />}
+            </div>
         </div>
     );
 }

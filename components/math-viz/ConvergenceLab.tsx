@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 
 // ── Sequence generators ─────────────────────────────────────────────────────
 type SequenceType = "convergent" | "cauchy_complete" | "cauchy_incomplete" | "oscillating";
@@ -225,7 +224,7 @@ export default function ConvergenceLab() {
                     {terms.slice(0, displayN).map((val, i) => {
                         const isInsideEpsilon = seq.limit !== null && Math.abs(val - seq.limit) < epsilon;
                         return (
-                            <motion.circle
+                            <circle
                                 key={i}
                                 cx={xScale(i + 1)}
                                 cy={yScale(val)}
@@ -233,9 +232,6 @@ export default function ConvergenceLab() {
                                 fill={isInsideEpsilon ? seq.color : "#94a3b8"}
                                 stroke="#fff"
                                 strokeWidth={1.5}
-                                initial={{ opacity: 0, scale: 0 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ delay: animating ? 0 : i * 0.02 }}
                             />
                         );
                     })}

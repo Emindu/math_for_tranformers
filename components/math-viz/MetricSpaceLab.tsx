@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useCallback, useRef } from 'react';
 
 // ── Metric functions ────────────────────────────────────────────────────────
 function euclidean(p1: [number, number], p2: [number, number]): number {
@@ -183,7 +182,7 @@ export default function MetricSpaceLab() {
 
                     {/* Unit ball at origin */}
                     {showBall && metric !== "cosine" && (
-                        <motion.path
+                        <path
                             key={metric}
                             d={unitBallPath(metric, SVG_W / 2, SVG_H / 2, SCALE)}
                             fill={m.color}
@@ -191,9 +190,6 @@ export default function MetricSpaceLab() {
                             stroke={m.color}
                             strokeWidth={1.5}
                             strokeDasharray="4,3"
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.3 }}
                         />
                     )}
 

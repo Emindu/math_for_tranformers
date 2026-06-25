@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import katex from 'katex';
 import Latex from 'react-latex-next';
 import 'katex/dist/katex.min.css';
@@ -168,19 +167,18 @@ export default function AttentionMatrixLab({ initialSentence = "The cat sat on t
 
                                 {/* Cells */}
                                 {row.map((score, j) => (
-                                    <motion.div
+                                    <div
                                         key={`cell-${i}-${j}`}
                                         className="relative aspect-square rounded-sm border border-slate-100 cursor-pointer group"
                                         style={{ backgroundColor: getColor(score) }}
                                         onMouseEnter={() => setHoveredIdx({ i, j })}
                                         onMouseLeave={() => setHoveredIdx(null)}
-                                        whileHover={{ scale: 1.1, zIndex: 10 }}
                                     >
                                         {/* Tooltip on hover */}
                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block bg-slate-800 text-white text-[10px] px-1 rounded z-20 whitespace-nowrap">
                                             {score.toFixed(3)}
                                         </div>
-                                    </motion.div>
+                                    </div>
                                 ))}
                             </React.Fragment>
                         ))}
