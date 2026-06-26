@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
 
 // ── Schedule types ────────────────────────────────────────────────────────────
 type ScheduleType = "step" | "exponential" | "polynomial" | "cosine" | "warmrestart";
@@ -104,15 +103,13 @@ function Plot({
                 x2={xScale(epoch)} y2={PAD.top + PH}
                 stroke={sched.color} strokeWidth={1.5} strokeDasharray="4,3" opacity={0.7}
             />
-            <motion.circle
+            <circle
                 cx={xScale(epoch)}
                 cy={yScale(currentLR)}
                 r={5}
                 fill={sched.color}
                 stroke="#fff"
                 strokeWidth={2}
-                animate={{ cx: xScale(epoch), cy: yScale(currentLR) }}
-                transition={{ type: "spring", stiffness: 200, damping: 20 }}
             />
 
             {/* Axes labels */}
@@ -194,11 +191,9 @@ function LossPlot({ scheduleType, epoch }: { scheduleType: ScheduleType; epoch: 
                 <>
                     <line x1={xScale(epoch)} y1={PAD.top} x2={xScale(epoch)} y2={PAD.top + PH}
                         stroke={sched.color} strokeWidth={1} strokeDasharray="3,3" opacity={0.6} />
-                    <motion.circle
+                    <circle
                         cx={xScale(epoch)} cy={yScale(currentLoss)} r={5}
                         fill={sched.color} stroke="#fff" strokeWidth={2}
-                        animate={{ cx: xScale(epoch), cy: yScale(currentLoss) }}
-                        transition={{ type: "spring", stiffness: 200, damping: 20 }}
                     />
                     <text x={xScale(epoch) + 6} y={yScale(currentLoss) - 6}
                         fontSize={9} fill={sched.color} fontWeight="bold">

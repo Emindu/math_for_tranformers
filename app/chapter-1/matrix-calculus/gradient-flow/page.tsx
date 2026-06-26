@@ -1,12 +1,11 @@
 "use client";
 
 import React from 'react';
-import { ChevronLeft } from 'lucide-react';
-import Link from 'next/link';
-import { ConvergenceAnalysis, LearningRateSchedules } from '@/components/content/MatrixCalculusContent';
+import { GradientFlowContent } from '@/components/content/MatrixCalculusContent';
 import ConvergenceLab from '@/components/math-viz/ConvergenceLab';
 import LearningRateLab from '@/components/math-viz/LearningRateLab';
 import AudioExplainer, { AudioSection } from '@/components/ui/AudioExplainer';
+import LessonLayout from '@/components/shell/LessonLayout';
 
 const AUDIO_SECTIONS: AudioSection[] = [
     {
@@ -25,58 +24,14 @@ const AUDIO_SECTIONS: AudioSection[] = [
 
 export default function GradientFlowPage() {
     return (
-        <main className="min-h-screen bg-slate-50 py-12 px-4">
-            <div className="max-w-7xl mx-auto">
-                {/* Header */}
-                <div className="mb-8">
-                    <Link href="/chapter-1/matrix-calculus" className="inline-flex items-center text-slate-500 hover:text-indigo-600 mb-4 transition-colors">
-                        <ChevronLeft size={16} /> Back to Matrix Calculus
-                    </Link>
-                    <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">The Language of Computation</h1>
-                    <p className="text-xl text-slate-500 mt-2">Chapter 1.6.2: Optimization and Gradient Flow</p>
-                </div>
-
-                {/* Audio Explainer */}
-                <div className="mb-12 max-w-3xl">
-                    <AudioExplainer sections={AUDIO_SECTIONS} accentColor="indigo" />
-                </div>
-
-                <div className="flex flex-col gap-24">
-                    {/* Section 1: Convergence Analysis */}
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
-                        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
-                            <ConvergenceAnalysis />
-                        </div>
-                        <div className="flex flex-col gap-8">
-                            <div className="sticky top-8">
-                                <ConvergenceLab />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Section 2: Learning Rate Schedules */}
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
-                        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
-                            <LearningRateSchedules />
-                        </div>
-                        <div className="flex flex-col gap-8">
-                            <div className="sticky top-8">
-                                <LearningRateLab />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Navigation */}
-                <div className="mt-16 flex justify-between">
-                    <Link href="/chapter-1/matrix-calculus/differentiation"
-                        className="inline-flex items-center gap-2 text-slate-600 hover:text-indigo-600 font-semibold transition-colors">
-                        ← Back to 1.6.1 Differentiation
-                    </Link>
-                    {/* Placeholder for next chapter link */}
-                    <div></div>
-                </div>
+        <LessonLayout width="wide">
+            <div className="mb-10">
+                <AudioExplainer sections={AUDIO_SECTIONS} accentColor="indigo" />
             </div>
-        </main>
+            <GradientFlowContent
+                convergenceLab={<ConvergenceLab />}
+                learningRateLab={<LearningRateLab />}
+            />
+        </LessonLayout>
     );
 }

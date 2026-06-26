@@ -1,11 +1,10 @@
 "use client";
 
 import React from 'react';
-import { ChevronLeft } from 'lucide-react';
-import Link from 'next/link';
-import { DifferentiationOfMatrixFunctions, JacobianAndHessianMatrices } from '@/components/content/MatrixCalculusContent';
+import { DifferentiationContent } from '@/components/content/MatrixCalculusContent';
 import GradientExplorerLab from '@/components/math-viz/GradientExplorerLab';
 import AudioExplainer, { AudioSection } from '@/components/ui/AudioExplainer';
+import LessonLayout from '@/components/shell/LessonLayout';
 
 const AUDIO_SECTIONS: AudioSection[] = [
     {
@@ -36,60 +35,11 @@ const AUDIO_SECTIONS: AudioSection[] = [
 
 export default function DifferentiationPage() {
     return (
-        <main className="min-h-screen bg-slate-50 py-12 px-4">
-            <div className="max-w-7xl mx-auto">
-                {/* Header */}
-                <div className="mb-8">
-                    <Link href="/chapter-1/matrix-calculus" className="inline-flex items-center text-slate-500 hover:text-rose-600 mb-4 transition-colors">
-                        <ChevronLeft size={16} /> Back to Matrix Calculus
-                    </Link>
-                    <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">The Language of Computation</h1>
-                    <p className="text-xl text-slate-500 mt-2">Chapter 1.6.1: Differentiation of Matrix Functions</p>
-                </div>
-
-                {/* Audio Explainer */}
-                <div className="mb-12 max-w-3xl">
-                    <AudioExplainer sections={AUDIO_SECTIONS} accentColor="rose" />
-                </div>
-
-                <div className="flex flex-col gap-24">
-                    {/* Section 1: Differentiation of Matrix Functions */}
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
-                        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
-                            <DifferentiationOfMatrixFunctions />
-                        </div>
-                        <div className="flex flex-col gap-8">
-                            <div className="sticky top-8">
-                                <GradientExplorerLab />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Section 2: Jacobian and Hessian */}
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
-                        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
-                            <JacobianAndHessianMatrices />
-                        </div>
-                        <div className="flex flex-col gap-8">
-                            <div className="sticky top-8">
-                                <GradientExplorerLab />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Navigation */}
-                <div className="mt-16 flex justify-between">
-                    <Link href="/chapter-1/matrix-calculus"
-                        className="inline-flex items-center gap-2 text-slate-600 hover:text-rose-600 font-semibold transition-colors">
-                        ← Back to Matrix Calculus
-                    </Link>
-                    <Link href="/chapter-1/matrix-calculus/gradient-flow"
-                        className="inline-flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-6 py-3 rounded-full font-semibold transition-colors opacity-50 pointer-events-none">
-                        Next: Optimization and Gradient Flow → (Coming Soon)
-                    </Link>
-                </div>
+        <LessonLayout width="wide">
+            <div className="mb-10">
+                <AudioExplainer sections={AUDIO_SECTIONS} accentColor="rose" />
             </div>
-        </main>
+            <DifferentiationContent gradientLab={<GradientExplorerLab />} />
+        </LessonLayout>
     );
 }
