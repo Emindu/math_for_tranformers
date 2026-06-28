@@ -10,59 +10,59 @@
    ───────────────────────────────────────────────────────────────────────── */
 :root {
   /* Surfaces */
-  --background: #ffffff;        /* app background */
-  --surface: #ffffff;          /* cards / reading surface */
-  --surface-2: #f8fafc;        /* subtle raised / sidebar */
-  --surface-3: #f1f5f9;        /* hover / inset */
-  --border: #e2e8f0;
-  --border-strong: #cbd5e1;
+  --background: #faf7f0;
+  --surface: #faf7f0;
+  --surface-2: #ede8e0;
+  --surface-3: #e4ddd0;
+  --border: #e4ddd0;
+  --border-strong: #c8c0b4;
 
   /* Text */
-  --foreground: #0f172a;       /* primary text (slate-900) */
-  --muted: #475569;            /* secondary text (slate-600) */
-  --faint: #94a3b8;            /* tertiary text (slate-400) */
+  --foreground: #211e18;
+  --muted: #8c8273;
+  --faint: #c8c0b4;
 
-  /* Accent — a single, calm indigo carries the whole system. */
-  --accent: #4f46e5;
-  --accent-hover: #4338ca;
-  --accent-soft: #eef2ff;      /* tinted background for chips/active */
+  /* Accent */
+  --accent: #2a52be;
+  --accent-hover: #1e3a8a;
+  --accent-soft: rgba(42, 82, 190, 0.06);
   --accent-contrast: #ffffff;
 
   /* Code / math */
-  --code-bg: #f1f5f9;
-  --code-fg: #0f172a;
+  --code-bg: rgba(42, 82, 190, 0.04);
+  --code-fg: #211e18;
 
   /* Syntax tokens (light) */
-  --tok-keyword: #7c3aed;
+  --tok-keyword: #2a52be;
   --tok-string: #047857;
-  --tok-comment: #64748b;
+  --tok-comment: #8c8273;
   --tok-number: #b45309;
 }
 
 .dark {
-  --background: #0b1020;
-  --surface: #111827;
-  --surface-2: #0f172a;
-  --surface-3: #1e293b;
-  --border: #1f2a3c;
-  --border-strong: #334155;
+  --background: #211e18;
+  --surface: #211e18;
+  --surface-2: #2c2820;
+  --surface-3: #3b362a;
+  --border: #3b362a;
+  --border-strong: #524d3f;
 
-  --foreground: #e5e7eb;
-  --muted: #9aa6b8;
-  --faint: #64748b;
+  --foreground: #faf7f0;
+  --muted: #c8c0b4;
+  --faint: #8c8273;
 
-  --accent: #818cf8;
-  --accent-hover: #a5b4fc;
-  --accent-soft: #1e2440;
-  --accent-contrast: #0b1020;
+  --accent: #9ab0e0;
+  --accent-hover: #b4c5ee;
+  --accent-soft: rgba(154, 176, 224, 0.1);
+  --accent-contrast: #211e18;
 
-  --code-bg: #1e293b;
-  --code-fg: #e5e7eb;
+  --code-bg: #2c2820;
+  --code-fg: #faf7f0;
 
   /* Syntax tokens (dark) */
-  --tok-keyword: #c4b5fd;
+  --tok-keyword: #9ab0e0;
   --tok-string: #6ee7b7;
-  --tok-comment: #94a3b8;
+  --tok-comment: #8c8273;
   --tok-number: #fcd34d;
 }
 
@@ -82,6 +82,122 @@
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  /* Theme Overrides for hardcoded classes */
+  --color-white: var(--surface);
+  --color-black: var(--foreground);
+  
+  --color-slate-50: var(--surface);
+  --color-slate-100: var(--surface-2);
+  --color-slate-200: var(--border);
+  --color-slate-300: var(--border-strong);
+  --color-slate-400: var(--faint);
+  --color-slate-500: var(--muted);
+  --color-slate-600: var(--muted);
+  --color-slate-700: var(--foreground);
+  --color-slate-800: var(--foreground);
+  --color-slate-900: var(--foreground);
+  --color-slate-950: var(--foreground);
+
+  /* Accent Color Mapping */
+  --color-indigo-50: var(--accent-soft);
+  --color-indigo-100: var(--accent-soft);
+  --color-indigo-200: var(--accent-soft);
+  --color-indigo-300: var(--accent-soft);
+  --color-indigo-400: var(--accent);
+  --color-indigo-500: var(--accent);
+  --color-indigo-600: var(--accent);
+  --color-indigo-700: var(--accent-hover);
+  --color-indigo-800: var(--accent-hover);
+  --color-indigo-900: var(--accent-hover);
+
+  --color-sky-50: var(--accent-soft);
+  --color-sky-100: var(--accent-soft);
+  --color-sky-200: var(--accent-soft);
+  --color-sky-300: var(--accent-soft);
+  --color-sky-400: var(--accent);
+  --color-sky-500: var(--accent);
+  --color-sky-600: var(--accent);
+  --color-sky-700: var(--accent-hover);
+  --color-sky-800: var(--accent-hover);
+  --color-sky-900: var(--accent-hover);
+
+  --color-teal-50: var(--accent-soft);
+  --color-teal-100: var(--accent-soft);
+  --color-teal-200: var(--accent-soft);
+  --color-teal-300: var(--accent-soft);
+  --color-teal-400: var(--accent);
+  --color-teal-500: var(--accent);
+  --color-teal-600: var(--accent);
+  --color-teal-700: var(--accent-hover);
+  --color-teal-800: var(--accent-hover);
+  --color-teal-900: var(--accent-hover);
+
+  --color-emerald-50: var(--accent-soft);
+  --color-emerald-100: var(--accent-soft);
+  --color-emerald-200: var(--accent-soft);
+  --color-emerald-300: var(--accent-soft);
+  --color-emerald-400: var(--accent);
+  --color-emerald-500: var(--accent);
+  --color-emerald-600: var(--accent);
+  --color-emerald-700: var(--accent-hover);
+  --color-emerald-800: var(--accent-hover);
+  --color-emerald-900: var(--accent-hover);
+
+  --color-cyan-50: var(--accent-soft);
+  --color-cyan-100: var(--accent-soft);
+  --color-cyan-200: var(--accent-soft);
+  --color-cyan-300: var(--accent-soft);
+  --color-cyan-400: var(--accent);
+  --color-cyan-500: var(--accent);
+  --color-cyan-600: var(--accent);
+  --color-cyan-700: var(--accent-hover);
+  --color-cyan-800: var(--accent-hover);
+  --color-cyan-900: var(--accent-hover);
+
+  --color-fuchsia-50: var(--accent-soft);
+  --color-fuchsia-100: var(--accent-soft);
+  --color-fuchsia-200: var(--accent-soft);
+  --color-fuchsia-300: var(--accent-soft);
+  --color-fuchsia-400: var(--accent);
+  --color-fuchsia-500: var(--accent);
+  --color-fuchsia-600: var(--accent);
+  --color-fuchsia-700: var(--accent-hover);
+  --color-fuchsia-800: var(--accent-hover);
+  --color-fuchsia-900: var(--accent-hover);
+
+  --color-pink-50: var(--accent-soft);
+  --color-pink-100: var(--accent-soft);
+  --color-pink-200: var(--accent-soft);
+  --color-pink-300: var(--accent-soft);
+  --color-pink-400: var(--accent);
+  --color-pink-500: var(--accent);
+  --color-pink-600: var(--accent);
+  --color-pink-700: var(--accent-hover);
+  --color-pink-800: var(--accent-hover);
+  --color-pink-900: var(--accent-hover);
+
+  --color-rose-50: var(--accent-soft);
+  --color-rose-100: var(--accent-soft);
+  --color-rose-200: var(--accent-soft);
+  --color-rose-300: var(--accent-soft);
+  --color-rose-400: var(--accent);
+  --color-rose-500: var(--accent);
+  --color-rose-600: var(--accent);
+  --color-rose-700: var(--accent-hover);
+  --color-rose-800: var(--accent-hover);
+  --color-rose-900: var(--accent-hover);
+
+  --color-blue-50: var(--accent-soft);
+  --color-blue-100: var(--accent-soft);
+  --color-blue-200: var(--accent-soft);
+  --color-blue-300: var(--accent-soft);
+  --color-blue-400: var(--accent);
+  --color-blue-500: var(--accent);
+  --color-blue-600: var(--accent);
+  --color-blue-700: var(--accent-hover);
+  --color-blue-800: var(--accent-hover);
+  --color-blue-900: var(--accent-hover);
 }
 
 * {
